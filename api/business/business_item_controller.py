@@ -3,7 +3,7 @@ from web_framework_v2 import RequestBody, PathVariable, QueryParameter, JwtToken
 
 from body import Review
 from .. import app
-from security.business_token_auth import BusinessJwtTokenAuth
+from security.token_security import BusinessJwtTokenAuth
 
 
 @JwtTokenAuth()

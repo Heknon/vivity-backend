@@ -2,7 +2,7 @@ from web_framework_v2 import JwtTokenAuth, QueryParameter, RequestBody, PathVari
 
 from .. import app
 from body import BusinessUpdateData, AuthorizedRouteRequestBody
-from security.business_token_auth import BusinessJwtTokenAuth
+from security.token_security import BusinessJwtTokenAuth
 
 
 class BusinessData:

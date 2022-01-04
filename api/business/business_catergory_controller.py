@@ -2,7 +2,7 @@ from web_framework_v2 import JwtTokenAuth, PathVariable, RequestBody
 
 from .. import app
 from body import UpdateCategoryData
-from security.business_token_auth import BusinessJwtTokenAuth
+from security.token_security import BusinessJwtTokenAuth
 
 
 @JwtTokenAuth()
