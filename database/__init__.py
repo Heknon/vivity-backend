@@ -1,5 +1,5 @@
 __all__ = ["DocumentObject", "users_collection", "businesses_collection", "orders_collection", "User", "UserOptions", "LikedItems",
-           "ShippingAddress"]
+           "ShippingAddress", "Order", "OrderItem", "OrderHistory", "ModificationButtonDataType", "SelectedModificationButton"]
 
 from pymongo import MongoClient, collection, database, TEXT
 
@@ -15,3 +15,5 @@ orders_collection: collection.Collection = client.orders
 users_collection.create_index([("email", TEXT)], unique=True)
 
 from .user import *
+from .item import *
+

@@ -54,7 +54,7 @@ class ShippingAddress(DocumentObject):
             method_name = "update_" + field_name
             setattr(self, method_name, lambda value: self.update_field(self.shorten_field_name(field_name), value))
 
-    def update_field(self, field_name, value):
+    def update_field(self, field_name, value) -> user.User:
         return user.User.document_repr_to_object(
             users_collection.find_one_and_update(
                 {"_id": ObjectId(self.user_id)},
@@ -63,7 +63,7 @@ class ShippingAddress(DocumentObject):
             )
         )
 
-    def update_fields(self, **kwargs):
+    def update_fields(self, **kwargs) -> user.User:
         filtered_kwargs = filter(lambda name, value: name in self.updatable_fields, kwargs.items())
         update_dict = {
             f"sa.{str(self.address_id)}.{self.shorten_field_name(key)}": value for key, value in filtered_kwargs
@@ -88,7 +88,7 @@ class ShippingAddress(DocumentObject):
         )
 
     @staticmethod
-    def add_address(self, address: ShippingAddress):
+    def add_address(self, address: ShippingAddress) -> user.User:
         return user.User.document_repr_to_object(
             users_collection.find_one_and_update(
                 {"_id": self.user_id},
@@ -98,7 +98,7 @@ class ShippingAddress(DocumentObject):
         )
 
     @staticmethod
-    def remove_address(self, address_index):
+    def remove_address(self, address_index) -> user.User:
         users_collection.update_one({"_id": self.user_id}, {"$unset": {"sa." + str(address_index): 1}})
         return user.User.document_repr_to_object(
             users_collection.find_one_and_update({"_id": self.user_id}, {"$pull": {"sa": None}}, return_document=ReturnDocument.AFTER)

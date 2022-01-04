@@ -4,14 +4,17 @@ from typing import List
 
 import bcrypt
 from bson import ObjectId
+from pymongo import ReturnDocument
 from pymongo.results import DeleteResult
 
 import database.user.liked_items as liked_items_module
+import database.user.order.order_history as order_history_module
 import database.user.shipping_address as shipping_address
 import database.user.user_options as user_options
 from database import users_collection, DocumentObject
 
 
+# Todo: ADD ORDER HISTORY
 class User(DocumentObject):
     LONG_TO_SHORT = {
         "_id": "_id",
@@ -21,6 +24,7 @@ class User(DocumentObject):
         "password": "pw",
         "options": "op",
         "shipping_addresses": "sa",
+        "order_history": "oh",
         "liked_items": "lk"
     }
 
@@ -54,8 +58,16 @@ class User(DocumentObject):
             method_name = "update_" + field_name
             setattr(self, method_name, lambda value: self.update_field(self.shorten_field_name(field_name), value))
 
-    def update_field(self, field_name, value):
-        users_collection.update_one({"_id": ObjectId(self._id)}, {"$set": {field_name: value}})
+    def update_field(self, field_name, value) -> User:
+        return User.document_repr_to_object(
+            users_collection.find_one_and_update({"_id": ObjectId(self._id)}, {"$set": {field_name: value}}, return_document=ReturnDocument.AFTER)
+        )
+
+    def insert(self) -> ObjectId:
+        return users_collection.insert_one(User.get_db_repr(self)).inserted_id
+
+    def get_order_history(self) -> order_history_module.OrderHistory | None:
+        return order_history_module.OrderHistory.get_by_id(self._id)
 
     @staticmethod
     def get_by_email(email) -> User:
@@ -66,18 +78,29 @@ class User(DocumentObject):
         return users_collection.find_one({"_id": ObjectId(_id)})
 
     @staticmethod
-    def document_repr_to_object(doc, **kwargs):
+    def document_repr_to_object(doc, **kwargs) -> User:
         return User(
-            _id=doc["_id"],
+            _id=doc["_id"].binary,
             email=doc.ml,
             name=doc.nm,
             phone=doc.ph,
             password=doc.pw,
-            options=user_options.UserOptions.document_repr_to_object(doc.op, _id=doc["_id"]),
+            options=user_options.UserOptions.document_repr_to_object(doc.op, _id=doc["_id"].binary),
             shipping_addresses=list(
-                map(lambda i, sa: shipping_address.ShippingAddress.document_repr_to_object(sa, _id=doc["_id"], address_index=i), enumerate(doc.sa))),
-            liked_items=liked_items_module.LikedItems.document_repr_to_object(doc, _id=doc["_id"]),
+                map(lambda i, sa: shipping_address.ShippingAddress.document_repr_to_object(sa, _id=doc["_id"].binary, address_index=i),
+                    enumerate(doc.get("sa", [])))),
+            liked_items=liked_items_module.LikedItems.document_repr_to_object(doc, _id=doc["_id"].binary),
         )
+
+    @staticmethod
+    def create_new_user(
+            email=None,
+            name=None,
+            phone=None,
+            password=None,
+            hash_password=True
+    ) -> ObjectId:
+        return users_collection.insert_one(User.default_object_repr(email, name, phone, password, hash_password)).inserted_id
 
     @staticmethod
     def default_object_repr(

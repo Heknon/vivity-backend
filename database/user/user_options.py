@@ -4,7 +4,7 @@ from bson import ObjectId
 from pymongo import ReturnDocument
 
 from database import DocumentObject, users_collection
-import database.user
+import database.user as user
 
 
 class UserOptions(DocumentObject):
@@ -49,20 +49,20 @@ class UserOptions(DocumentObject):
             method_name = "update_" + field_name
             setattr(self, method_name, lambda value: self.update_field(self.shorten_field_name(field_name), value))
 
-    def update_field(self, field_name, value):
-        return database.user.User.document_repr_to_object(
+    def update_field(self, field_name, value) -> user.User:
+        return user.User.document_repr_to_object(
             users_collection.find_one_and_update(
                 {"_id": ObjectId(self.user_id)}, {"$set": {"op." + field_name: value}}, return_document=ReturnDocument.AFTER
             )
         )
 
-    def update_fields(self, **kwargs):
+    def update_fields(self, **kwargs) -> user.User:
         filtered_kwargs = filter(lambda name, value: name in self.updatable_fields, kwargs.items())
         update_dict = {
             f"op.{self.shorten_field_name(key)}": value for key, value in filtered_kwargs
         }
 
-        return database.user.User.document_repr_to_object(
+        return user.User.document_repr_to_object(
             users_collection.find_one_and_update(
                 {"_id": ObjectId(self.user_id)}, {"$set": update_dict}, return_document=ReturnDocument.AFTER
             )
