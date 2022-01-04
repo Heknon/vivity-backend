@@ -1,6 +1,7 @@
-from web_framework_v2 import JwtTokenAuth, RequestBody, QueryParameter
+from web_framework_v2 import RequestBody, QueryParameter
 
 from api import auth_fail
+from security import BlacklistJwtTokenAuth
 from .. import app
 from body import ForgotPasswordAuthorizedRouteRequestBody, AuthorizedRouteRequestBody
 
@@ -23,18 +24,18 @@ class DeleteUser:
     """
 
     @staticmethod
-    @JwtTokenAuth(on_fail=auth_fail)
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.post("/user/delete")
     def send_delete_email(
-            token_data: JwtTokenAuth
+            token_data: BlacklistJwtTokenAuth
     ):
         pass
 
     @staticmethod
-    @JwtTokenAuth(on_fail=auth_fail)
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.delete("/user/delete")
     def delete_user(
-            token_data: JwtTokenAuth,
+            token_data: BlacklistJwtTokenAuth,
             authorized_body: RequestBody(AuthorizedRouteRequestBody)
     ):
         pass

@@ -1,7 +1,8 @@
-from web_framework_v2 import RequestBody, JwtTokenAuth, QueryParameter
+from web_framework_v2 import RequestBody, QueryParameter
 
 from api import auth_fail
 from body import UserSettings, PaymentData
+from security import BlacklistJwtTokenAuth
 from .. import app
 
 
@@ -13,7 +14,7 @@ class UserData:
     """
 
     @staticmethod
-    @JwtTokenAuth(on_fail=auth_fail)
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.get("/user")
     def get_user_data(
             get_options: QueryParameter("options", bool),
@@ -27,16 +28,16 @@ class UserData:
         pass
 
     @staticmethod
-    @JwtTokenAuth(on_fail=auth_fail)
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.patch("/user")
     def update_user_data(user_settings: RequestBody(UserSettings)):
         pass
 
     @staticmethod
-    @JwtTokenAuth(on_fail=auth_fail)
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.post("/user/payment")
     def user_payment(
-            token_data: JwtTokenAuth,
+            token_data: BlacklistJwtTokenAuth,
             payment_data: RequestBody(PaymentData)
     ):
         pass

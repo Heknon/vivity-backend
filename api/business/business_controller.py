@@ -1,13 +1,13 @@
-from web_framework_v2 import JwtTokenAuth, QueryParameter, RequestBody, PathVariable
+from web_framework_v2 import QueryParameter, RequestBody, PathVariable
 
 from .. import app
 from body import BusinessUpdateData, AuthorizedRouteRequestBody
-from security.token_security import BusinessJwtTokenAuth
+from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
 
 
 class BusinessData:
     @staticmethod
-    @JwtTokenAuth()
+    @BlacklistJwtTokenAuth()
     @app.get("/business/{business_id}")
     def get_business_data(
             business_id: PathVariable("business_id"),
@@ -31,7 +31,7 @@ class BusinessData:
         pass
 
     @staticmethod
-    @JwtTokenAuth()
+    @BlacklistJwtTokenAuth()
     @app.post("/business")
     def request_business_creation(
             business_owner_id: RequestBody(raw_format=True),

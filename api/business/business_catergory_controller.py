@@ -1,11 +1,11 @@
-from web_framework_v2 import JwtTokenAuth, PathVariable, RequestBody
+from web_framework_v2 import PathVariable, RequestBody
 
 from .. import app
 from body import UpdateCategoryData
-from security.token_security import BusinessJwtTokenAuth
+from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
 
 
-@JwtTokenAuth()
+@BlacklistJwtTokenAuth()
 @app.get("/business/{business_id}/category/{category}")
 def get_category_data(
         business_id: PathVariable("business_id"),
