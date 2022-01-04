@@ -1,10 +1,8 @@
-from web_framework_v2 import Framework
-
-app = Framework("", "")
+import api  # must import to register package and execute its code.
 
 
 def main():
-    app.start()
+    api.app.start()
 
 
 if __name__ == '__main__':

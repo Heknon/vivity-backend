@@ -1,4 +1,4 @@
-from models.business_contact_info import BusinessContactInfo
+from body.business_contact_info import BusinessContactInfo
 
 
 class BusinessUpdateData:

@@ -1,7 +1,7 @@
 from web_framework_v2 import JwtTokenAuth, QueryParameter, RequestBody, PathVariable
 
-from main import app
-from models import BusinessUpdateData
+from .. import app
+from body import BusinessUpdateData, AuthorizedRouteRequestBody
 from security.business_token_auth import BusinessJwtTokenAuth
 
 
@@ -10,6 +10,7 @@ class BusinessData:
     @JwtTokenAuth()
     @app.get("/business/{business_id}")
     def get_business_data(
+            business_id: PathVariable("business_id"),
             get_all_categories: QueryParameter("all_categories", bool),
             get_all_items: QueryParameter("all_items", bool),
             category_ids: QueryParameter("categories", list),
@@ -40,4 +41,19 @@ class BusinessData:
 
 
 class BusinessDelete:
-    pass
+    @staticmethod
+    @BusinessJwtTokenAuth()
+    @app.post("/business/delete")
+    def request_business_deletion(
+            token_data: BusinessJwtTokenAuth
+    ):
+        pass
+
+    @staticmethod
+    @BusinessJwtTokenAuth()
+    @app.delete("/business/delete")
+    def delete_business(
+            token_data: BusinessJwtTokenAuth,
+            authorized_route_body: RequestBody(AuthorizedRouteRequestBody)
+    ):
+        pass

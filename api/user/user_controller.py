@@ -1,8 +1,8 @@
-from web_framework_v2 import RequestBody, HttpResponse, JwtTokenAuth, QueryParameter
+from web_framework_v2 import RequestBody, JwtTokenAuth, QueryParameter
 
-from api.user import auth_fail
-from main import app
-from models import UserSettings, ForgotPasswordAuthorizedRouteRequestBody, AuthorizedRouteRequestBody
+from api import auth_fail
+from body import UserSettings, PaymentData
+from .. import app
 
 
 # TODO: Remember to add blacklist checks of token
@@ -30,4 +30,13 @@ class UserData:
     @JwtTokenAuth(on_fail=auth_fail)
     @app.patch("/user")
     def update_user_data(user_settings: RequestBody(UserSettings)):
+        pass
+
+    @staticmethod
+    @JwtTokenAuth(on_fail=auth_fail)
+    @app.post("/user/payment")
+    def user_payment(
+            token_data: JwtTokenAuth,
+            payment_data: RequestBody(PaymentData)
+    ):
         pass
