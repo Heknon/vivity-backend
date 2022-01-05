@@ -11,8 +11,8 @@ if __name__ == '__main__':
 
 """
 Need to implement the following document objects:
-    - OrderHistory
-    - Order
+    - OrderHistory ✓
+    - Order ✓
         
     - Item
     - Review
@@ -22,5 +22,8 @@ Need to implement the following document objects:
     - Business
     - Category
     - Contact
+    
+    - ImageGallery
+        - Image
     
 """

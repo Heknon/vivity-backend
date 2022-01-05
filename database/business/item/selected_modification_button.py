@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from database import DocumentObject
-from database.item import ModificationButtonDataType
+from database.business.item import ModificationButtonDataType
 
 
 class SelectedModificationButton(DocumentObject):

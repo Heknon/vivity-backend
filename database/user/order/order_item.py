@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from typing import List
 
-from database import DocumentObject
-from database.item import SelectedModificationButton
+from database import DocumentObject, Image
+from database.business.item import SelectedModificationButton
 
 
 class OrderItem(DocumentObject):
     LONG_TO_SHORT = {
         "business_id": "bid",
         "item_id": "iid",
+        "preview_image": "pi",
         "title": "ttl",
         "subtitle": "sbt",
         "description": "dsc",
@@ -22,6 +23,7 @@ class OrderItem(DocumentObject):
             self,
             business_id: bytes,
             item_id: int,
+            preview_image: Image,
             title: str,
             subtitle: str,
             description: str,
@@ -29,6 +31,7 @@ class OrderItem(DocumentObject):
     ):
         self.business_id = business_id
         self.item_id = item_id
+        self.preview_image = preview_image
         self.title = title
         self.subtitle = subtitle
         self.description = description
@@ -41,6 +44,7 @@ class OrderItem(DocumentObject):
         res = {value: getattr(order_item, key) for key, value in OrderItem.LONG_TO_SHORT.items()}
         res.setdefault("smb", [])
         res["smb"] = list(map(lambda smb: SelectedModificationButton.get_db_repr(smb), res["smb"]))
+        res["pi"] = res["pi"].image_id
 
         return res
 
@@ -50,6 +54,7 @@ class OrderItem(DocumentObject):
         args.setdefault("selected_modification_button_data", [])
         args["selected_modification_button_data"] = \
             list(map(lambda mod_button: SelectedModificationButton.document_repr_to_object(mod_button), args["selected_modification_button_data"]))
+        args["preview_image"] = Image(doc[args["preview_image"]])
 
         return OrderItem(**args)
 
