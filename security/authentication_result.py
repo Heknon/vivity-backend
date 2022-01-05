@@ -9,3 +9,6 @@ class AuthenticationResult(Enum):
     Success = 4
     NotBusiness = 5
     MissingFields = 6
+    EmailIncorrect = 7
+    PasswordInvalid = 8
+    EmailInvalid = 9

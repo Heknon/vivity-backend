@@ -1,2 +1,2 @@
-def auth_fail(req, res):
-    pass
+def auth_fail(req, res, data):
+    return data

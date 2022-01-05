@@ -3,6 +3,7 @@ __all__ = ["DocumentObject", "users_collection", "businesses_collection", "order
            "Color", "ModificationButton", "ModificationButtonSide", "Review", "Item", "ItemStoreFormat", "Location", "Category", "Contact",
            "BusinessUser"]
 
+from bson import ObjectId
 from pymongo import MongoClient, collection, database, TEXT
 
 from .color import Color
@@ -11,6 +12,7 @@ from .image import Image
 from .location import Location
 
 client: database.Database = MongoClient("localhost", 27017)["vivity"]
+
 
 test_collection: collection.Collection = client.test
 users_collection: collection.Collection = client.users
@@ -36,7 +38,7 @@ users_collection.create_index([("email", TEXT)], unique=True)
 #     }
 # })
 #
-# print(test_collection.find_one({"_id": doc1.inserted_id}))
+# print(test_collection.count_documents({"_id": doc1.inserted_id}, limit=1))
 #
 # print(test_collection.find_one(
 #     {"_id": doc1.inserted_id},

@@ -72,12 +72,12 @@ class UserOptions(DocumentObject):
     def document_repr_to_object(doc, **kwargs) -> UserOptions:
         return UserOptions(
             user_id=kwargs["_id"],
-            business_search_radius=doc.bsr,
-            distance_unit=doc.du,
-            currency_type=doc.ct,
-            shirt_size=doc.shs,
-            jeans_size=doc.jes,
-            sweats_size=doc.sws,
+            business_search_radius=doc["bsr"],
+            distance_unit=doc["du"],
+            currency_type=doc["ct"],
+            shirt_size=doc["shs"],
+            jeans_size=doc["jes"],
+            sweats_size=doc["sws"],
         )
 
     @staticmethod

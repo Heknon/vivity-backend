@@ -5,13 +5,15 @@ from . import app
 from security import RegistrationTokenFactory, LoginTokenFactory
 
 
-@RegistrationTokenFactory
+# TODO: Update authentication failures to be much more abstract
+@RegistrationTokenFactory(on_fail=auth_fail)
 @app.post("/user/register")
 def register(
+        factory_result: RegistrationTokenFactory,
         user_info: RequestBody(UserInfo),
         response: HttpResponse
 ):
-    pass
+    return factory_result
 
 
 @LoginTokenFactory(on_fail=auth_fail)
@@ -21,4 +23,4 @@ def login(
         user_info: RequestBody(UserInfo),
         response: HttpResponse
 ):
-    pass
+    return token_created

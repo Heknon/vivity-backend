@@ -7,10 +7,12 @@ from bson import ObjectId
 import database.user.liked_items as liked_items_module
 import database.user.shipping_address as shipping_address
 import database.user.user_options as user_options
-from database import User
+from body import TokenData
+import database.user.user as user_module
+from database import users_collection
 
 
-class BusinessUser(User):
+class BusinessUser(user_module.User):
     LONG_TO_SHORT = {
         "_id": "_id",
         "email": "ml",
@@ -45,6 +47,16 @@ class BusinessUser(User):
         self.business_name = business_name
 
         self.updatable_fields.add("business_name")
+
+    @staticmethod
+    def get_by_email(email, raw_document=True) -> BusinessUser | dict | None:
+        return users_collection.find_one({"email": email}) \
+            if raw_document else BusinessUser.document_repr_to_object(users_collection.find_one({"email": email}))
+
+    @staticmethod
+    def get_by_id(_id: ObjectId, raw_document=True) -> BusinessUser | dict | None:
+        return users_collection.find_one({"_id": _id}) \
+            if raw_document else BusinessUser.document_repr_to_object(users_collection.find_one({"_id": _id}))
 
     @staticmethod
     def get_db_repr(user: BusinessUser):
