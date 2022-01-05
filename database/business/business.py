@@ -8,7 +8,7 @@ from pymongo import ReturnDocument
 import database.business.category as category_module
 import database.business.contact as contact_module
 import database.business.item.item as item_module
-from database import DocumentObject, businesses_collection, Location, Image, ImageGallery
+from database import DocumentObject, businesses_collection, Location, Image
 
 
 class Business(DocumentObject):
@@ -21,7 +21,6 @@ class Business(DocumentObject):
         "contact": "cntc",
         "owner_id_card": "oic",
         "national_business_id": "nbi",
-        "image_gallery": "ig",
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -37,7 +36,6 @@ class Business(DocumentObject):
             contact: contact_module.Contact,
             owner_id_card: Image,
             national_business_id: str,
-            image_gallery: ImageGallery
     ):
         self._id = _id
         self.rating = rating
@@ -48,7 +46,6 @@ class Business(DocumentObject):
         self.contact = contact
         self.owner_id_card = owner_id_card
         self.national_business_id = national_business_id
-        self.image_gallery = image_gallery
 
         self.updatable_fields = {
             "name", "national_business_id", "owner_id_card"
@@ -184,7 +181,6 @@ class Business(DocumentObject):
         res["cat"] = list(map(lambda category: category_module.Category.get_db_repr(category), res.get("cat", [])))
         res["cntc"] = contact_module.Contact.get_db_repr(res["cntc"])
         res["oic"] = res["oic"].image_id
-        res["ig"] = ImageGallery.get_db_repr(res["ig"])
 
         return res
 
@@ -202,7 +198,6 @@ class Business(DocumentObject):
         args["contact"] = contact_module.Contact.document_repr_to_object(args["contact"], business_id=args["_id"]) if args.get("contact",
                                                                                                                                None) is not None else None
         args["owner_id_card"] = Image(args.get("owner_id_card", None))
-        args["image_gallery"] = ImageGallery.document_repr_to_object(args["image_gallery"])
 
         return Business(**args)
 

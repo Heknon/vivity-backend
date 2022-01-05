@@ -119,12 +119,12 @@ class Item(DocumentObject):
             businesses_collection.find_one_and_update({"_id": self.business_id}, {"$pull": {"it": None}}, return_document=ReturnDocument.AFTER)
         )
 
-    def add_review(self, review: Review) -> business.Business:
+    def add_review(self, review: review_module.Review) -> business.Business:
         self.rating = -1
         return business.Business.document_repr_to_object(
             businesses_collection.find_one_and_update(
                 {"_id": self.business_id},
-                {"$set": {f"it.{self._id.binary.decode('cp437')}.rs.{review.poster_id.binary.decode('cp437')}": Review.get_db_repr(review)}},
+                {"$set": {f"it.{self._id.binary.decode('cp437')}.rs.{review.poster_id.binary.decode('cp437')}": review_module.Review.get_db_repr(review)}},
                 return_document=ReturnDocument.AFTER
             )
         )
@@ -144,10 +144,10 @@ class Item(DocumentObject):
         res = {value: getattr(item, key) for key, value in Item.LONG_TO_SHORT.items()}
 
         res["pi"] = res["pi"].image_id if res.get("pi", None) is not None else None
-        res["isf"] = ItemStoreFormat.get_db_repr(res["isf"])
+        res["isf"] = isf_module.ItemStoreFormat.get_db_repr(res["isf"])
 
         res["im"] = list(map(lambda image: image.image_id, res["im"]))
-        res["rs"] = list(map(lambda review: Review.get_db_repr(review), res.get("rs", [])))
+        res["rs"] = list(map(lambda review: review_module.Review.get_db_repr(review), res.get("rs", [])))
 
         return res
 

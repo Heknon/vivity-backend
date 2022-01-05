@@ -1,15 +1,13 @@
 __all__ = ["DocumentObject", "users_collection", "businesses_collection", "orders_collection", "User", "UserOptions", "LikedItems",
            "ShippingAddress", "Order", "OrderItem", "OrderHistory", "ModificationButtonDataType", "SelectedModificationButton", "Image",
            "Color", "ModificationButton", "ModificationButtonSide", "Review", "Item", "ItemStoreFormat", "Location", "Category", "Contact",
-           "ImageGallery", "BusinessUser"]
+           "BusinessUser"]
 
-from bson import ObjectId
 from pymongo import MongoClient, collection, database, TEXT
 
 from .color import Color
 from .doc_object import DocumentObject
 from .image import Image
-from .image_gallery import ImageGallery
 from .location import Location
 
 client: database.Database = MongoClient("localhost", 27017)["vivity"]

@@ -12,3 +12,7 @@ class Image:
 
     def delete_image(self):
         pass
+
+    @staticmethod
+    def upload(image: bytes) -> str:
+        pass
