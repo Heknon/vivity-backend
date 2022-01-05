@@ -14,14 +14,14 @@ Need to implement the following document objects:
     - OrderHistory ✓
     - Order ✓
         
-    - Item
-    - Review
-    - StoreFormat
-    - ModificationButton
+    - Item ✓
+    - Review ✓
+    - StoreFormat ✓
+    - ModificationButton ✓
     
-    - Business
-    - Category
-    - Contact
+    - Business ✓
+    - Category ✓
+    - Contact ✓
     
     - ImageGallery
         - Image

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from database import DocumentObject
+import database.doc_object as doc_object
 
 
-class Color(DocumentObject):
+class Color(doc_object.DocumentObject):
     def __init__(self, rgb: bytes):
         self.rgb = rgb
         self.r = rgb[0]

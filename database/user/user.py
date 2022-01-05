@@ -32,7 +32,7 @@ class User(DocumentObject):
 
     def __init__(
             self,
-            _id: bytes,
+            _id: ObjectId,
             email: str,
             name: str,
             phone: str,
@@ -50,7 +50,7 @@ class User(DocumentObject):
         self.shipping_addresses = shipping_addresses
         self.liked_items = liked_items
 
-        self.updatable_fields = ["email", "phone", "password"]
+        self.updatable_fields = {"email", "phone", "password"}
         self.generate_update_methods()
 
     def generate_update_methods(self):
@@ -80,16 +80,16 @@ class User(DocumentObject):
     @staticmethod
     def document_repr_to_object(doc, **kwargs) -> User:
         return User(
-            _id=doc["_id"].binary,
+            _id=doc["_id"],
             email=doc.ml,
             name=doc.nm,
             phone=doc.ph,
             password=doc.pw,
-            options=user_options.UserOptions.document_repr_to_object(doc.op, _id=doc["_id"].binary),
+            options=user_options.UserOptions.document_repr_to_object(doc.op, _id=doc["_id"]),
             shipping_addresses=list(
-                map(lambda i, sa: shipping_address.ShippingAddress.document_repr_to_object(sa, _id=doc["_id"].binary, address_index=i),
+                map(lambda i, sa: shipping_address.ShippingAddress.document_repr_to_object(sa, _id=doc["_id"], address_index=i),
                     enumerate(doc.get("sa", [])))),
-            liked_items=liked_items_module.LikedItems.document_repr_to_object(doc, _id=doc["_id"].binary),
+            liked_items=liked_items_module.LikedItems.document_repr_to_object(doc, _id=doc["_id"]),
         )
 
     @staticmethod

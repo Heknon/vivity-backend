@@ -21,7 +21,7 @@ class UserOptions(DocumentObject):
 
     def __init__(
             self,
-            user_id: bytes,
+            user_id: ObjectId,
             business_search_radius: float,
             distance_unit: str,
             currency_type: str,

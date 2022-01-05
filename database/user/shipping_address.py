@@ -29,7 +29,7 @@ class ShippingAddress(DocumentObject):
             street: str,
             city: str,
             country: str,
-            user_id: bytes = None,
+            user_id: ObjectId = None,
             address_id: int = None,
     ):
         self.user_id = user_id

@@ -6,8 +6,10 @@ from bson import ObjectId
 from pymongo import ReturnDocument
 
 from database import Image, DocumentObject, businesses_collection
-from database.business.item import Review, ItemStoreFormat
 import database.business.business as business
+
+import database.business.item.item_store_format as isf_module
+import database.business.item.review as review_module
 
 
 class Item(DocumentObject):
@@ -32,8 +34,8 @@ class Item(DocumentObject):
             price: float,
             images: List[Image],
             preview_image: int,
-            reviews: Dict[ObjectId, Review],
-            item_store_format: ItemStoreFormat,
+            reviews: Dict[ObjectId, review_module.Review],
+            item_store_format: isf_module.ItemStoreFormat,
             brand: str,
             category: str,
             tags: List[str],
@@ -51,6 +53,7 @@ class Item(DocumentObject):
         self.category = category
         self.tags = tags
         self.stock = stock
+        self.rating = -1
 
         self.updatable_fields = {
             "price", "preview_image", "brand", "category", "stock"
@@ -117,6 +120,7 @@ class Item(DocumentObject):
         )
 
     def add_review(self, review: Review) -> business.Business:
+        self.rating = -1
         return business.Business.document_repr_to_object(
             businesses_collection.find_one_and_update(
                 {"_id": self.business_id},
@@ -126,6 +130,7 @@ class Item(DocumentObject):
         )
 
     def remove_review(self, poster_id: ObjectId) -> business.Business:
+        self.rating = -1
         return business.Business.document_repr_to_object(
             businesses_collection.find_one_and_update(
                 {"_id": self.business_id},
@@ -152,13 +157,19 @@ class Item(DocumentObject):
         business_id = kwargs["business_id"]
 
         args["preview_image"] = Image(args["preview_image"])
-        args["item_store_format"] = ItemStoreFormat.document_repr_to_object(args["item_store_format"], business_id=business_id, item_id=kwargs["_id"])
+        args["item_store_format"] = \
+            isf_module.ItemStoreFormat.document_repr_to_object(args["item_store_format"], business_id=business_id, item_id=args["_id"])
 
         args["images"] = list(map(lambda image_id: Image(image_id), args["images"]))
-        args["reviews"] = list(map(lambda review_doc: Review.document_repr_to_object(review_doc), args["reviews"]))
+        args["reviews"] = list(map(lambda review_doc: review_module.Review.document_repr_to_object(review_doc), args["reviews"]))
         args["business_id"] = business_id
 
         return Item(**args)
+
+    def calculate_rating(self) -> float:
+        if self.rating == -1:
+            self.rating = sum(map(lambda review: review.rating, self.reviews)) / float(len(self.reviews))
+        return self.rating
 
     def shorten_field_name(self, field_name):
         return Item.LONG_TO_SHORT.get(field_name, None)

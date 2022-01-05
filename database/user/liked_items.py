@@ -1,5 +1,6 @@
 from typing import List, Dict
 
+from bson import ObjectId
 from pymongo import ReturnDocument
 
 from database import users_collection, DocumentObject
@@ -9,7 +10,7 @@ import database.user.user as user
 class LikedItems(DocumentObject):
     def __init__(
             self,
-            user_id: bytes,
+            user_id: ObjectId,
             liked_items: Dict[bytes, List[int]]
     ):
         self.user_id = user_id
@@ -25,37 +26,37 @@ class LikedItems(DocumentObject):
     def document_repr_to_object(doc, **kwargs):
         return LikedItems(liked_items=doc, user_id=kwargs["_id"])
 
-    def add_liked_item(self, owning_business_id: bytes, item_id: int) -> user.User:
+    def add_liked_item(self, owning_business_id: ObjectId, item_id: int) -> user.User:
         res = user.User.document_repr_to_object(users_collection.find_one_and_update(
             {"_id": self.user_id},
-            {"$addToSet": {"lk." + owning_business_id.decode("cp437"): item_id}},
+            {"$addToSet": {"lk." + owning_business_id.binary.decode("cp437"): item_id}},
             return_document=ReturnDocument.AFTER
         ))
 
         return res
 
-    def add_liked_items(self, owning_business_id: bytes, *item_id: int) -> user.User:
+    def add_liked_items(self, owning_business_id: ObjectId, *item_id: int) -> user.User:
         res = user.User.document_repr_to_object(users_collection.find_one_and_update(
             {"_id": self.user_id},
-            {"$addToSet": {"lk." + owning_business_id.decode("cp437"): {"$each": item_id}}},
+            {"$addToSet": {"lk." + owning_business_id.binary.decode("cp437"): {"$each": item_id}}},
             return_document=ReturnDocument.AFTER
         ))
 
         return res
 
-    def remove_liked_item(self, owning_business_id: bytes, item_id: int) -> user.User:
+    def remove_liked_item(self, owning_business_id: ObjectId, item_id: int) -> user.User:
         res = user.User.document_repr_to_object(users_collection.find_one_and_update(
             {"_id": self.user_id},
-            {"$pull": {"lk." + owning_business_id.decode("cp437"): item_id}},
+            {"$pull": {"lk." + owning_business_id.binary.decode("cp437"): item_id}},
             return_document=ReturnDocument.AFTER
         ))
 
         return res
 
-    def remove_liked_items(self, owning_business_id: bytes, *item_id: int) -> user.User:
+    def remove_liked_items(self, owning_business_id: ObjectId, *item_id: int) -> user.User:
         res = user.User.document_repr_to_object(users_collection.find_one_and_update(
             {"_id": self.user_id},
-            {"$pullAll": {"lk." + owning_business_id.decode("cp437"): item_id}},
+            {"$pullAll": {"lk." + owning_business_id.binary.decode("cp437"): item_id}},
             return_document=ReturnDocument.AFTER
         ))
 

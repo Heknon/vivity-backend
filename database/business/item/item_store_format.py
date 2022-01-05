@@ -6,8 +6,8 @@ from bson import ObjectId
 from pymongo import ReturnDocument
 
 from database import DocumentObject, businesses_collection
-from database.business.item import ModificationButton, ModificationButtonSide
 import database.business.business as business
+import database.business.item.modification_button as mod_module
 
 
 class ItemStoreFormat(DocumentObject):
@@ -27,7 +27,7 @@ class ItemStoreFormat(DocumentObject):
             title: str,
             subtitle: str,
             description: str,
-            modification_buttons: Dict[ModificationButtonSide, ModificationButton]
+            modification_buttons: Dict[mod_module.ModificationButtonSide, mod_module.ModificationButton]
     ):
         self.business_id = business_id
         self.item_id = item_id
@@ -66,16 +66,16 @@ class ItemStoreFormat(DocumentObject):
             )
         )
 
-    def set_modification_button(self, side: ModificationButtonSide, modification_button: ModificationButton):
+    def set_modification_button(self, side: mod_module.ModificationButtonSide, modification_button: mod_module.ModificationButton):
         return business.Business.document_repr_to_object(
             businesses_collection.find_one_and_update(
                 {"_id": self.business_id},
-                {"$set": {f"it.{self.item_id.binary.decode('cp437')}.isf.mod.{side.value}": ModificationButton.get_db_repr(modification_button)}},
+                {"$set": {f"it.{self.item_id.binary.decode('cp437')}.isf.mod.{side.value}": mod_module.ModificationButton.get_db_repr(modification_button)}},
                 return_document=ReturnDocument.AFTER
             )
         )
 
-    def unset_modification_button(self, side: ModificationButtonSide):
+    def unset_modification_button(self, side: mod_module.ModificationButtonSide):
         return business.Business.document_repr_to_object(
             businesses_collection.find_one_and_update(
                 {"_id": self.business_id},
@@ -87,7 +87,7 @@ class ItemStoreFormat(DocumentObject):
     @staticmethod
     def get_db_repr(isf: ItemStoreFormat) -> dict:
         res = {value: getattr(isf, key) for key, value in ItemStoreFormat.LONG_TO_SHORT.items()}
-        res["mod"] = list(map(lambda mod: ModificationButton.get_db_repr(mod), res.get("mod", [])))
+        res["mod"] = list(map(lambda mod: mod_module.ModificationButton.get_db_repr(mod), res.get("mod", [])))
 
         return res
 
@@ -95,7 +95,7 @@ class ItemStoreFormat(DocumentObject):
     def document_repr_to_object(doc, **kwargs):
         args = {key: doc[value] for key, value in ItemStoreFormat.LONG_TO_SHORT.items()}
         args["modification_buttons"] = \
-            list(map(lambda side_num, mod_doc: ModificationButton.document_repr_to_object(
+            list(map(lambda side_num, mod_doc: mod_module.ModificationButton.document_repr_to_object(
                 mod_doc, business_id=kwargs["business_id"], item_id=kwargs["item_id"], side=side_num
             ), args.get("modification_buttons", {}).items()))
 
