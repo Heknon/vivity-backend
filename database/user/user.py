@@ -16,7 +16,6 @@ from body import TokenData
 from database import users_collection, DocumentObject, Image
 
 
-# Todo: ADD ORDER HISTORY
 class User(DocumentObject):
     LONG_TO_SHORT = {
         "_id": "_id",

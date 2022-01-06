@@ -10,8 +10,6 @@ from security import RegistrationTokenFactory, LoginTokenFactory
 @app.post("/user/register")
 def register(
         factory_result: RegistrationTokenFactory,
-        user_info: RequestBody(UserInfo),
-        response: HttpResponse
 ):
     return factory_result
 
@@ -20,7 +18,5 @@ def register(
 @app.post("/user/login")
 def login(
         token_created: LoginTokenFactory,
-        user_info: RequestBody(UserInfo),
-        response: HttpResponse
 ):
     return token_created

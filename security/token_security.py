@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import logging
 import re
-import time
 
 from bson import ObjectId
 from password_validator import PasswordValidator
 from web_framework_v2 import JwtTokenFactory, JwtTokenAuth
 
-from database import User, BusinessUser
+from database import User, BusinessUser, blacklist
 from security import AuthenticationResult
+
+logger = logging.getLogger(__name__)
 
 VALIDATOR = PasswordValidator().min(8).digits().lowercase().uppercase().symbols()
 EMAIL_REGEX = re.compile(
@@ -20,6 +22,9 @@ def validate_email(email: str):
 
 
 class RegistrationTokenFactory(JwtTokenFactory):
+    def __init__(self, on_fail=lambda request, response: None):
+        super().__init__(on_fail, blacklist.TOKEN_EXPIRATION_TIME)
+
     def token_data_builder(self, request, request_body, user: User):
         return {
             "id": user._id.binary.decode("cp437"),
@@ -55,6 +60,9 @@ class RegistrationTokenFactory(JwtTokenFactory):
 
 
 class LoginTokenFactory(JwtTokenFactory):
+    def __init__(self, on_fail=lambda request, response: None):
+        super().__init__(on_fail, blacklist.TOKEN_EXPIRATION_TIME)
+
     def token_data_builder(self, request, request_body, user: User | BusinessUser):
         result = {
             "id": user._id.binary.decode("cp437"),
@@ -113,13 +121,11 @@ class BlacklistJwtTokenAuth(JwtTokenAuth):
 
     @staticmethod
     def is_token_blacklisted(token: str):
-        # Todo: Check if token is blacklisted in database
-        return False
+        return blacklist.in_blacklist(token)
 
     @staticmethod
     def blacklist_token(token):
-        # Todo: Add token to blacklist
-        pass
+        blacklist.add_to_blacklist(token)
 
     def decoded_token_transformer(self, request, request_body, decoded_token: dict) -> User | BusinessUser:
         if "business_id" in decoded_token and decoded_token["business_id"] is not None:
