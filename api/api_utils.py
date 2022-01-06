@@ -4,6 +4,7 @@ import logging
 from web_framework_v2 import HttpStatus, HttpRequest, HttpResponse
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def auth_fail(req: HttpRequest, res: HttpResponse, data):

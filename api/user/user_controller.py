@@ -1,12 +1,13 @@
+from typing import Union
+
 from web_framework_v2 import RequestBody, QueryParameter
 
 from api import auth_fail
 from body import UserSettings, PaymentData
+from database import User, BusinessUser
 from security import BlacklistJwtTokenAuth
 from .. import app
 
-
-# TODO: Remember to add blacklist checks of token
 
 class UserData:
     """
@@ -17,15 +18,20 @@ class UserData:
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.get("/user")
     def get_user_data(
+            user: BlacklistJwtTokenAuth,
             get_options: QueryParameter("options", bool),
             get_orders: QueryParameter("orders", bool),
             order_ids: QueryParameter("order", list),
             get_address: QueryParameter("address", bool),
             get_liked_items: QueryParameter("liked_items", bool),
     ):
-        # TODO: Check if crash occurs when get_orders gets list
-        # TODO: Check if crash occurs when order_ids gets int
-        pass
+        user: Union[User, BusinessUser] = user
+
+        result = {
+
+        }
+
+        return
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)

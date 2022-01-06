@@ -129,8 +129,9 @@ class BlacklistJwtTokenAuth(JwtTokenAuth):
 
     def decoded_token_transformer(self, request, request_body, decoded_token: dict) -> User | BusinessUser:
         if "business_id" in decoded_token and decoded_token["business_id"] is not None:
-            return BusinessUser.get_by_id(ObjectId(decoded_token["id"].encode("cp437")))
-        return User.get_by_id(ObjectId(decoded_token["id"].encode("cp437")))
+            return BusinessUser.get_by_id(ObjectId(decoded_token["id"].encode("cp437")), False)
+
+        return User.get_by_id(ObjectId(decoded_token["id"].encode("cp437")), False)
 
 
 class BusinessJwtTokenAuth(BlacklistJwtTokenAuth):

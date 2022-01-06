@@ -1,3 +1,5 @@
+import json
+
 from api import auth_fail
 from body import UserInfo
 from web_framework_v2 import RequestBody, HttpResponse
@@ -5,7 +7,6 @@ from . import app
 from security import RegistrationTokenFactory, LoginTokenFactory
 
 
-# TODO: Update authentication failures to be much more abstract
 @RegistrationTokenFactory(on_fail=auth_fail)
 @app.post("/user/register")
 def register(
