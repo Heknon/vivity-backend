@@ -4,16 +4,18 @@ import time
 from typing import List
 
 import bcrypt
+import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 from pymongo.results import DeleteResult
+from web_framework_v2 import JwtSecurity
 
 import database.user.liked_items as liked_items_module
 import database.user.order.order_history as order_history_module
 import database.user.shipping_address as shipping_address
 import database.user.user_options as user_options
 from body import TokenData
-from database import users_collection, DocumentObject, Image
+from database import users_collection, DocumentObject, Image, blacklist
 
 
 class User(DocumentObject):
@@ -79,11 +81,12 @@ class User(DocumentObject):
         return order_hist
 
     @staticmethod
-    def promote_to_business_user(_id: ObjectId, business_id: ObjectId, business_name: str):
-        return User.document_repr_to_object(
+    def promote_to_business_user(_id: ObjectId, business_id: ObjectId):
+        import database.user.business_user as business_user
+        return business_user.BusinessUser.document_repr_to_object(
             users_collection.find_one_and_update(
                 {"_id": _id},
-                {"$set": {"bid": business_id, "bnm": business_name}},
+                {"$set": {"bid": business_id}},
                 return_document=ReturnDocument.AFTER
             )
         )
@@ -110,9 +113,15 @@ class User(DocumentObject):
         return users_collection.find_one({"_id": _id}) \
             if raw_document else User.document_repr_to_object(users_collection.find_one({"_id": _id}))
 
+    def __repr__(self):
+        return jsonpickle.encode(User.get_db_repr(self), unpicklable=False)
+
     @staticmethod
     def document_repr_to_object(doc, **kwargs) -> User:
-        args = {key: doc[value] for key, value in User.LONG_TO_SHORT.items()}
+        import database.user.business_user as business_user
+
+        cls = business_user.BusinessUser if "bid" in doc else User
+        args = {key: doc[value] for key, value in cls.LONG_TO_SHORT.items()}
 
         args["profile_picture"] = Image(doc.get("pfp", None))
         args["options"] = user_options.UserOptions.document_repr_to_object(doc["op"], _id=doc["_id"]) if doc.get("op", None) is not None else None
@@ -125,7 +134,7 @@ class User(DocumentObject):
         args["liked_items"] = \
             liked_items_module.LikedItems.document_repr_to_object(doc["lk"], _id=doc["_id"]) if doc.get("lk", None) is not None else None
 
-        return User(**args)
+        return cls(**args)
 
     @staticmethod
     def get_db_repr(user: User):
@@ -146,10 +155,7 @@ class User(DocumentObject):
             password=None,
             hash_password=True
     ) -> User:
-        start = time.time()
         default_user_repr = User.default_object_repr(email, name, phone, password, hash_password)
-        end = time.time()
-        print(f"DEFAULT REPR CREATION TIME TAKEN: {end - start}")
         return User.document_repr_to_object(
             users_collection.find_one_and_replace(
                 {"_id": default_user_repr["_id"]},
@@ -177,6 +183,20 @@ class User(DocumentObject):
             "sa": shipping_address.ShippingAddress.default_object_repr(),
             "lk": liked_items_module.LikedItems.default_object_repr()
         }
+
+    def build_token(self, encoded=False):
+        token = {
+            "id": self._id.binary.decode("cp437"),
+            "name": self.name,
+            "profile_picture": self.profile_picture.image_id,
+            "email": self.email,
+            "phone": self.phone
+        }
+
+        if hasattr(self, "business_id"):
+            token["business_id"] = self.business_id.binary.decode('cp437')
+
+        return token if not encoded else JwtSecurity.create_token(token, blacklist.TOKEN_EXPIRATION_TIME)
 
     @staticmethod
     def delete_by_id(_id: bytes) -> DeleteResult:

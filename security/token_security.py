@@ -26,13 +26,7 @@ class RegistrationTokenFactory(JwtTokenFactory):
         super().__init__(on_fail, blacklist.TOKEN_EXPIRATION_TIME)
 
     def token_data_builder(self, request, request_body, user: User):
-        return {
-            "id": user._id.binary.decode("cp437"),
-            "name": user.name,
-            "profile_picture": user.profile_picture.image_id,
-            "email": user.email,
-            "phone": user.phone
-        }
+        return user.build_token()
 
     def authenticate(self, request, request_body) -> (bool, object, User):
         if "name" not in request_body or "email" not in request_body or "password" not in request_body or "phone" not in request_body:
@@ -64,18 +58,7 @@ class LoginTokenFactory(JwtTokenFactory):
         super().__init__(on_fail, blacklist.TOKEN_EXPIRATION_TIME)
 
     def token_data_builder(self, request, request_body, user: User | BusinessUser):
-        result = {
-            "id": user._id.binary.decode("cp437"),
-            "name": user.name,
-            "profile_picture": user.profile_picture.image_id,
-            "email": user.email,
-            "phone": user.phone
-        }
-
-        if hasattr(user, "business_id"):
-            result["business_id"] = user.business_id
-
-        return result
+        return user.build_token()
 
     def authenticate(self, request, request_body) -> (bool, object, object):
         if "email" not in request_body or "password" not in request_body:
@@ -98,7 +81,7 @@ class LoginTokenFactory(JwtTokenFactory):
             return False, AuthenticationResult.PasswordIncorrect, None
 
         user: User | BusinessUser
-        if "business_id" in user_doc and user_doc["business_id"] is not None:
+        if "bid" in user_doc and user_doc["bid"] is not None:
             user = BusinessUser.document_repr_to_object(user_doc)
         else:
             user = User.document_repr_to_object(user_doc)
@@ -107,9 +90,10 @@ class LoginTokenFactory(JwtTokenFactory):
 
 
 class BlacklistJwtTokenAuth(JwtTokenAuth):
-    def __init__(self, on_fail=lambda request, response: None, check_blacklist: bool = False):
+    def __init__(self, on_fail=lambda request, response: None, check_blacklist: bool = False, raw_document=False):
         super().__init__(on_fail)
         self.check_blacklist = check_blacklist
+        self.raw_document = raw_document
 
     def authenticate(self, request, request_body, token) -> (bool, object):
         if token is None:
@@ -128,10 +112,10 @@ class BlacklistJwtTokenAuth(JwtTokenAuth):
         blacklist.add_to_blacklist(token)
 
     def decoded_token_transformer(self, request, request_body, decoded_token: dict) -> User | BusinessUser:
-        if "business_id" in decoded_token and decoded_token["business_id"] is not None:
-            return BusinessUser.get_by_id(ObjectId(decoded_token["id"].encode("cp437")), False)
+        if decoded_token is None:
+            return None
 
-        return User.get_by_id(ObjectId(decoded_token["id"].encode("cp437")), False)
+        return User.get_by_id(ObjectId(decoded_token["id"].encode("cp437")), self.raw_document)
 
 
 class BusinessJwtTokenAuth(BlacklistJwtTokenAuth):

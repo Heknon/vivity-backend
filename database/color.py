@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import jsonpickle
+
 import database.doc_object as doc_object
 
 
@@ -9,6 +11,9 @@ class Color(doc_object.DocumentObject):
         self.r = rgb[0]
         self.g = rgb[1]
         self.b = rgb[2]
+
+    def __repr__(self):
+        return jsonpickle.encode(Color.get_db_repr(self))
 
     @staticmethod
     def get_db_repr(color: Color) -> bytes:

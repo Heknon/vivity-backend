@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 from typing import List
 
+import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
@@ -40,6 +41,9 @@ class OrderHistory(DocumentObject):
                 {"_id": self.owner_id}, {"$pull": {"ods.$.ots": order_date.timestamp()}}, return_document=ReturnDocument.AFTER
             )
         )
+
+    def __repr__(self):
+        return jsonpickle.encode(OrderHistory.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def get_db_repr(order_history: OrderHistory):

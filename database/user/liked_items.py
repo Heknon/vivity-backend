@@ -1,5 +1,6 @@
 from typing import List, Dict
 
+import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
@@ -61,6 +62,9 @@ class LikedItems(DocumentObject):
         ))
 
         return res
+
+    def __repr__(self):
+        return jsonpickle.encode(LikedItems.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def default_object_repr() -> dict:

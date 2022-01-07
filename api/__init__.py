@@ -7,7 +7,7 @@ logging.basicConfig(format='%(asctime)s %(module)s %(levelname)s: %(message)s',
 
 from web_framework_v2 import Framework, JwtSecurity
 
-app = Framework("", "", logging.DEBUG)
+app = Framework("", "", logging.INFO)
 JwtSecurity.set_secret("some_super_secret")
 
 from .api_utils import auth_fail

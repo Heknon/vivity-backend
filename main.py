@@ -12,21 +12,6 @@ def main():
 if __name__ == '__main__':
     main()
 
-"""
-Need to implement the following document objects:
-    - OrderHistory ✓
-    - Order ✓
-        
-    - Item ✓
-    - Review ✓
-    - StoreFormat ✓
-    - ModificationButton ✓
-    
-    - Business ✓
-    - Category ✓
-    - Contact ✓
-    
-    - ImageGallery
-        - Image
-    
-"""
+# TODO: Email system
+# TODO: Implement Image system
+# TODO: Implement API.

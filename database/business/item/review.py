@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
+import jsonpickle
 from bson import ObjectId
 
 from database import DocumentObject, Image
@@ -34,6 +35,9 @@ class Review(DocumentObject):
         self.rating = rating
         self.text_content = text_content
         self.images = images
+
+    def __repr__(self):
+        return jsonpickle.encode(Review.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def get_db_repr(review: Review):

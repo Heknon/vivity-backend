@@ -3,6 +3,8 @@ from __future__ import annotations
 import datetime
 from typing import List
 
+import jsonpickle
+
 from database import DocumentObject
 from database.user.order import OrderItem
 
@@ -22,6 +24,9 @@ class Order(DocumentObject):
     ):
         self.order_date = order_date
         self.items = items
+
+    def __repr__(self):
+        return jsonpickle.encode(Order.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def get_db_repr(order: Order):

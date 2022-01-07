@@ -1,6 +1,9 @@
+from typing import Union
+
 from web_framework_v2 import RequestBody, QueryParameter
 
 from api import auth_fail
+from database import User, BusinessUser
 from security import BlacklistJwtTokenAuth
 from .. import app
 from body import ForgotPasswordAuthorizedRouteRequestBody, AuthorizedRouteRequestBody
@@ -35,7 +38,8 @@ class DeleteUser:
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.delete("/user/delete")
     def delete_user(
-            token_data: BlacklistJwtTokenAuth,
+            user: BlacklistJwtTokenAuth,
             authorized_body: RequestBody(AuthorizedRouteRequestBody)
     ):
+        user: Union[User, BusinessUser] = user
         pass

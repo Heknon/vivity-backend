@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List, Dict
 
+import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
@@ -55,7 +56,7 @@ class ItemStoreFormat(DocumentObject):
         )
 
     def update_fields(self, **kwargs) -> business.Business:
-        filtered_kwargs = filter(lambda name, value: name in self.updatable_fields, kwargs.items())
+        filtered_kwargs = filter(lambda item: item[0] in self.updatable_fields, kwargs.items())
         update_dict = {
             f"it.{self.item_id.binary.decode('cp437')}.isf.{self.shorten_field_name(key)}": value for key, value in filtered_kwargs
         }
@@ -83,6 +84,9 @@ class ItemStoreFormat(DocumentObject):
                 return_document=ReturnDocument.AFTER
             )
         )
+
+    def __repr__(self):
+        return jsonpickle.encode(ItemStoreFormat.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def get_db_repr(isf: ItemStoreFormat) -> dict:

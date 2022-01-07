@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List, Dict
 
+import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
@@ -66,7 +67,7 @@ class Business(DocumentObject):
         )
 
     def update_fields(self, **kwargs) -> Business:
-        filtered_kwargs = filter(lambda name, value: name in self.updatable_fields, kwargs.items())
+        filtered_kwargs = filter(lambda item: item[0] in self.updatable_fields, kwargs.items())
         update_dict = {
             self.shorten_field_name(key): value for key, value in filtered_kwargs
         }
@@ -167,6 +168,46 @@ class Business(DocumentObject):
         )
 
     @staticmethod
+    def create_business(
+            name: str,
+            location: Location,
+            email: str,
+            phone: str,
+            image_id_card: bytes,
+            national_id_business_id: str
+
+    ) -> Business:
+        _id = ObjectId()
+        image_id: Image = Image.upload(image_id_card)
+
+        return Business.document_repr_to_object(businesses_collection.find_one_and_replace(
+            {"_id": _id},
+            Business.get_db_repr(Business(
+                _id=_id,
+                rating=0,
+                name=name,
+                locations=[location],
+                items=dict(),
+                categories=[],
+                contact=contact_module.Contact(
+                    business_id=_id,
+                    phone=phone,
+                    email=email,
+                    instagram=None,
+                    twitter=None,
+                    facebook=None
+                ),
+                owner_id_card=image_id,
+                national_business_id=national_id_business_id
+            )),
+            upsert=True,
+            return_document=ReturnDocument.AFTER
+        ))
+
+    def __repr__(self):
+        return jsonpickle.encode(Business.get_db_repr(self), unpicklable=False)
+
+    @staticmethod
     def get_business_by_id(business_id: ObjectId) -> Business:
         return Business.document_repr_to_object(
             businesses_collection.find_one({"_id": business_id})
@@ -174,7 +215,7 @@ class Business(DocumentObject):
 
     @staticmethod
     def get_db_repr(business: Business):
-        res = {value: getattr(business, key) for key, value in item_module.Item.LONG_TO_SHORT.items()}
+        res = {value: getattr(business, key) for key, value in Business.LONG_TO_SHORT.items()}
 
         res["loc"] = list(map(lambda loc: Location.get_db_repr(loc), res.get("loc", [])))
         res["it"] = list(map(lambda item: item_module.Item.get_db_repr(item), res.get("it", [])))
@@ -186,7 +227,7 @@ class Business(DocumentObject):
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs):
-        args = {key: doc[value] for key, value in item_module.Item.LONG_TO_SHORT.items()}
+        args = {key: doc[value] for key, value in Business.LONG_TO_SHORT.items()}
 
         rating = sum(map(lambda item: item.calculate_rating(), args.get("items", [])))
         args["rating"] = rating

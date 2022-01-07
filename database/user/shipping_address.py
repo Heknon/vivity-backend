@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
@@ -64,7 +65,7 @@ class ShippingAddress(DocumentObject):
         )
 
     def update_fields(self, **kwargs) -> user.User:
-        filtered_kwargs = filter(lambda name, value: name in self.updatable_fields, kwargs.items())
+        filtered_kwargs = filter(lambda item: item[0] in self.updatable_fields, kwargs.items())
         update_dict = {
             f"sa.{str(self.address_id)}.{self.shorten_field_name(key)}": value for key, value in filtered_kwargs
         }
@@ -72,6 +73,9 @@ class ShippingAddress(DocumentObject):
         return user.User.document_repr_to_object(
             users_collection.find_one_and_update({"_id": ObjectId(self.user_id)}, {"$set": update_dict}, return_document=ReturnDocument.AFTER)
         )
+
+    def __repr__(self):
+        return jsonpickle.encode(ShippingAddress.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs):

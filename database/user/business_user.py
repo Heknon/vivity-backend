@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import List
 
+import jsonpickle
 from bson import ObjectId
 
 import database.user.liked_items as liked_items_module
 import database.user.shipping_address as shipping_address
 import database.user.user_options as user_options
-from body import TokenData
+from database import users_collection, Image
 import database.user.user as user_module
-from database import users_collection
 
 
 class BusinessUser(user_module.User):
@@ -21,10 +21,9 @@ class BusinessUser(user_module.User):
         "password": "pw",
         "options": "op",
         "shipping_addresses": "sa",
-        "order_history": "oh",
         "liked_items": "lk",
         "business_id": "bid",
-        "business_name": "bnm"
+        "profile_picture": "pfp"
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -35,18 +34,18 @@ class BusinessUser(user_module.User):
             email: str,
             name: str,
             phone: str,
-            password: str,
+            password: bytes,
+            profile_picture: Image,
             options: user_options.UserOptions,
             shipping_addresses: List[shipping_address.ShippingAddress],
             liked_items: liked_items_module.LikedItems,
-            business_id: ObjectId,
-            business_name: str
+            business_id: ObjectId
     ):
-        super().__init__(_id, email, name, phone, password, options, shipping_addresses, liked_items)
+        super().__init__(_id, email, name, phone, profile_picture, password, options, shipping_addresses, liked_items)
         self.business_id = business_id
-        self.business_name = business_name
 
-        self.updatable_fields.add("business_name")
+    def __repr__(self):
+        return jsonpickle.encode(BusinessUser.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def get_by_email(email, raw_document=True) -> BusinessUser | dict | None:
@@ -60,32 +59,28 @@ class BusinessUser(user_module.User):
 
     @staticmethod
     def get_db_repr(user: BusinessUser):
-        return {
-            "_id": user._id,
-            "ml": user.email,
-            "nm": user.name,
-            "ph": user.phone,
-            "pw": user.password,
-            "op": user_options.UserOptions.get_db_repr(user.options),
-            "sa": list(map(lambda address: shipping_address.ShippingAddress.get_db_repr(address), user.shipping_addresses)),
-            "lk": liked_items_module.LikedItems.get_db_repr(user.liked_items),
-            "bid": user.business_id,
-            "bnm": user.business_name
-        }
+        res = {value: getattr(user, key) for key, value in BusinessUser.LONG_TO_SHORT.items()}
+
+        res["pfp"] = res["pfp"].image_id
+        res["op"] = user_options.UserOptions.get_db_repr(user.options)
+        res["sa"] = list(map(lambda address: shipping_address.ShippingAddress.get_db_repr(address), user.shipping_addresses))
+        res["lk"] = liked_items_module.LikedItems.get_db_repr(user.liked_items)
+
+        return res
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs) -> BusinessUser:
-        return BusinessUser(
-            _id=doc["_id"],
-            email=doc.ml,
-            name=doc.nm,
-            phone=doc.ph,
-            password=doc.pw,
-            options=user_options.UserOptions.document_repr_to_object(doc.op, _id=doc["_id"]),
-            shipping_addresses=list(
-                map(lambda i, sa: shipping_address.ShippingAddress.document_repr_to_object(sa, _id=doc["_id"], address_index=i),
-                    enumerate(doc.get("sa", [])))),
-            liked_items=liked_items_module.LikedItems.document_repr_to_object(doc, _id=doc["_id"]),
-            business_id=doc["bid"],
-            business_name=doc["bnm"]
+        args = {key: doc[value] for key, value in BusinessUser.LONG_TO_SHORT.items()}
+
+        args["profile_picture"] = Image(doc.get("pfp", None))
+        args["options"] = user_options.UserOptions.document_repr_to_object(doc["op"], _id=doc["_id"]) if doc.get("op", None) is not None else None
+        args["shipping_addresses"] = list(
+            map(
+                lambda i, sa: shipping_address.ShippingAddress.document_repr_to_object(sa, _id=doc["_id"], address_index=i),
+                enumerate(doc.get("sa", []))
+            )
         )
+        args["liked_items"] = \
+            liked_items_module.LikedItems.document_repr_to_object(doc["lk"], _id=doc["_id"]) if doc.get("lk", None) is not None else None
+
+        return BusinessUser(**args)

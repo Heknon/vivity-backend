@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import List
 
+import jsonpickle
+
 from database import DocumentObject, Image
 from database.business.item import SelectedModificationButton
 
@@ -36,6 +38,9 @@ class OrderItem(DocumentObject):
         self.subtitle = subtitle
         self.description = description
         self.selected_modification_button_data = selected_modification_button_data
+
+    def __repr__(self):
+        return jsonpickle.encode(OrderItem.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def get_db_repr(

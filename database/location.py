@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import jsonpickle
+
 from database import DocumentObject
 
 
@@ -18,6 +20,9 @@ class Location(DocumentObject):
     ):
         self.longitude = longitude
         self.latitude = latitude
+
+    def __repr__(self):
+        return jsonpickle.encode(Location.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def get_db_repr(location: Location):

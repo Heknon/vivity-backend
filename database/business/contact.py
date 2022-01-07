@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
-from database import DocumentObject, businesses_collection
 import database.business.business as business
+from database import DocumentObject, businesses_collection
 
 
 class Contact(DocumentObject):
@@ -53,7 +54,7 @@ class Contact(DocumentObject):
         )
 
     def update_fields(self, **kwargs) -> business.Business:
-        filtered_kwargs = filter(lambda name, value: name in self.updatable_fields, kwargs.items())
+        filtered_kwargs = filter(lambda item: item[0] in self.updatable_fields, kwargs.items())
         update_dict = {
             f"cntc.{self.shorten_field_name(key)}": value for key, value in filtered_kwargs
         }
@@ -63,6 +64,9 @@ class Contact(DocumentObject):
                 {"_id": self.business_id}, {"$set": update_dict}, return_document=ReturnDocument.AFTER
             )
         )
+
+    def __repr__(self):
+        return jsonpickle.encode(Contact.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def get_db_repr(contact: Contact):
