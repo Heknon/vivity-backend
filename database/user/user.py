@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from typing import List
 
@@ -17,6 +18,7 @@ import database.user.user_options as user_options
 from body import TokenData
 from database import users_collection, DocumentObject, Image, blacklist
 
+logger = logging.getLogger(__name__)
 
 class User(DocumentObject):
     LONG_TO_SHORT = {
@@ -57,16 +59,17 @@ class User(DocumentObject):
         self.order_history: order_history_module.OrderHistory = None
 
         self.updatable_fields = {"email", "phone", "password", "profile_picture"}
-        self.generate_update_methods()
 
-    def generate_update_methods(self):
-        for field_name in self.updatable_fields:
-            method_name = "update_" + field_name
-            setattr(self, method_name, lambda value: self.update_field(self.shorten_field_name(field_name), value))
+    def update_fields(self, **kwargs) -> User:
+        filtered_kwargs = filter(lambda item: item[0] in self.updatable_fields, kwargs.items())
+        update_dict = {
+            self.shorten_field_name(key): value for key, value in filtered_kwargs
+        }
 
-    def update_field(self, field_name, value) -> User:
         return User.document_repr_to_object(
-            users_collection.find_one_and_update({"_id": ObjectId(self._id)}, {"$set": {field_name: value}}, return_document=ReturnDocument.AFTER)
+            users_collection.find_one_and_update(
+                {"_id": self._id}, {"$set": update_dict}, return_document=ReturnDocument.AFTER
+            )
         )
 
     def insert(self) -> ObjectId:
@@ -106,7 +109,7 @@ class User(DocumentObject):
     @staticmethod
     def get_by_email(email, raw_document=True) -> User | dict | None:
         return users_collection.find_one({"ml": email}) \
-            if raw_document else User.document_repr_to_object(users_collection.find_one({"email": email}))
+            if raw_document else User.document_repr_to_object(users_collection.find_one({"ml": email}))
 
     @staticmethod
     def get_by_id(_id: ObjectId, raw_document=True) -> User | dict | None:
@@ -199,7 +202,7 @@ class User(DocumentObject):
         return token if not encoded else JwtSecurity.create_token(token, blacklist.TOKEN_EXPIRATION_TIME)
 
     @staticmethod
-    def delete_by_id(_id: bytes) -> DeleteResult:
+    def delete_by_id(_id: ObjectId) -> DeleteResult:
         return users_collection.delete_one({"_id": _id})
 
     @staticmethod

@@ -1,20 +1,14 @@
 from __future__ import annotations
 
 import logging
-import re
 
 from bson import ObjectId
-from password_validator import PasswordValidator
 from web_framework_v2 import JwtTokenFactory, JwtTokenAuth
 
 from database import User, BusinessUser, blacklist
-from security import AuthenticationResult
+from security import AuthenticationResult, EMAIL_REGEX, VALIDATOR
 
 logger = logging.getLogger(__name__)
-
-VALIDATOR = PasswordValidator().min(8).digits().lowercase().uppercase().symbols()
-EMAIL_REGEX = re.compile(
-    r'^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$')
 
 
 def validate_email(email: str):
@@ -90,12 +84,16 @@ class LoginTokenFactory(JwtTokenFactory):
 
 
 class BlacklistJwtTokenAuth(JwtTokenAuth):
-    def __init__(self, on_fail=lambda request, response: None, check_blacklist: bool = False, raw_document=False):
+    def __init__(self, on_fail=lambda request, response: None, check_blacklist: bool = False, raw_document=False, no_fail=False):
         super().__init__(on_fail)
         self.check_blacklist = check_blacklist
         self.raw_document = raw_document
+        self.no_fail = no_fail
 
     def authenticate(self, request, request_body, token) -> (bool, object):
+        if self.no_fail:
+            return True, AuthenticationResult.Success
+
         if token is None:
             return False, AuthenticationResult.TokenInvalid
         elif self.check_blacklist and self.is_token_blacklisted(request.headers["Authorization"][8:]):
