@@ -104,6 +104,15 @@ class Business(DocumentObject):
             )
         )
 
+    def get_categories_with_items(self):
+        categories = dict()
+
+        for category in self.categories:
+            categories[category.name] = []
+
+            for item_id in category.items_ids:
+                categories[category.name].append(self.items[item_id])
+
     def get_category_by_name(self, name: str) -> category_module.Category:
         return category_module.Category.document_repr_to_object(
             businesses_collection.find_one(
@@ -129,19 +138,14 @@ class Business(DocumentObject):
             )
         )
 
-    def get_items(self, *item_ids: ObjectId) -> List[item_module.Item]:
-        if item_ids is None or len(item_ids) == 0:
-            return list(map(
-                lambda doc: item_module.Item.document_repr_to_object(doc),
-                businesses_collection.find({"_id": self._id}, {f"it": 1, "_id": 0})
-            ))
-
-        accepts = {f"it.{item_id.binary.decode('cp437')}": 1 for item_id in item_ids}
-        accepts["_id"] = 0
+    def get_items(self) -> List[item_module.Item]:
+        item_doc = businesses_collection.find({"_id": self._id}, {f"it": 1, "_id": 0})
+        if item_doc is None or len(item_doc) == 0:
+            return []
 
         return list(map(
             lambda doc: item_module.Item.document_repr_to_object(doc),
-            businesses_collection.find_one({"_id": self._id}, **accepts)["it"].values()
+            item_doc
         ))
 
     def get_item(self, item_id: ObjectId) -> item_module.Item:
@@ -212,6 +216,10 @@ class Business(DocumentObject):
         return Business.document_repr_to_object(
             businesses_collection.find_one({"_id": business_id})
         )
+
+    @staticmethod
+    def exists_by_id(_id: ObjectId):
+        return businesses_collection.count_documents({"_id": _id}, limit=1) == 1
 
     @staticmethod
     def get_db_repr(business: Business):

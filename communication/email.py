@@ -28,7 +28,7 @@ class Email(metaclass=Singleton):
         self.FORGOT_PASSWORD_HTML.replace("FORGOT_PASSWORD_FULL_URL", reset_url)
 
         return self.send_email(
-            to="vivity.noreply@gmail.com",
+            to=email,
             subject="Reset your password",
             body="",
             html=self.FORGOT_PASSWORD_HTML.replace("FORGOT_PASSWORD_FULL_URL", reset_url)

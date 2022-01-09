@@ -1,4 +1,4 @@
-__all__ = ["auth_fail", "app"]
+__all__ = ["auth_fail", "app", "HOST"]
 
 import logging
 

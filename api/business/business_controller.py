@@ -1,11 +1,12 @@
 from typing import Union
 
-from web_framework_v2 import QueryParameter, RequestBody, PathVariable, HttpRequest
+from bson import ObjectId
+from web_framework_v2 import QueryParameter, RequestBody, PathVariable, HttpRequest, HttpResponse, HttpStatus
 
-from database import Business, Location, User, BusinessUser, blacklist
-from .. import app, auth_fail
 from body import BusinessUpdateData, AuthorizedRouteRequestBody
+from database import Business, Location, User, BusinessUser, blacklist
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
+from .. import app, auth_fail
 
 
 class BusinessData:
@@ -14,15 +15,53 @@ class BusinessData:
     @app.get("/business/{business_id}")
     def get_business_data(
             business_id: PathVariable("business_id"),
-            get_all_categories: QueryParameter("all_categories", bool),
-            get_all_items: QueryParameter("all_items", bool),
-            category_ids: QueryParameter("categories", list),
-            item_ids: QueryParameter("item", list),
+            response: HttpResponse,
+            get_all_categories: QueryParameter("categories", bool),
+            get_all_items: QueryParameter("items", bool),
+            include_category_items: QueryParameter("include_category_items", bool),
             contact: QueryParameter("contact", bool),
-            location: QueryParameter("categories", bool),
+            location: QueryParameter("locations", bool),
             rating: QueryParameter("rating", bool),
     ):
-        pass
+        business_id = ObjectId(business_id)
+        business = Business.get_business_by_id(business_id)
+
+        if business is None:
+            response.status = HttpStatus.NOT_FOUND
+            return f"Business with id {business_id} does not exist."
+
+        if get_all_categories is None and get_all_items is None and contact is None and location is None and rating is None:
+            result = dict()
+
+            result["name"] = business.name
+            result["locations"] = business.locations
+            result["items"] = business.items
+            result["categories"] = business.categories if not include_category_items else business.get_categories_with_items()
+            result["contact"] = business.contact
+            return result
+
+        result = dict()
+
+        business: Business = Business.get_business_by_id(business_id)
+        if get_all_categories:
+            if include_category_items:
+                result["categories"] = business.get_categories_with_items()
+            else:
+                result["categories"] = business.categories
+
+        if get_all_items:
+            result["items"] = business.items
+
+        if contact:
+            result["contact"] = business.contact
+
+        if location:
+            result["locations"] = business.locations
+
+        if rating:
+            result["rating"] = business.rating
+
+        return result
 
     @staticmethod
     @BusinessJwtTokenAuth(on_fail=auth_fail)

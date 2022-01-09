@@ -50,7 +50,7 @@ class UserForgot:
     ):
         if "password" not in password:
             return "Must pass 'password' field in request body."
-        elif VALIDATOR.validate(password["password"]):
+        elif not VALIDATOR.validate(password["password"]):
             return f"Must pass a valid password. {VALIDATOR.properties}"
 
         user: Union[User, None] = user
@@ -95,6 +95,7 @@ class DeleteUser:
             user: BlacklistJwtTokenAuth,
             response: HttpResponse
     ):
+        # TODO: Deletion confirmation system with tokens like forgot password
         user: Union[User, BusinessUser] = user
         User.delete_by_id(user._id)
         response.status = HttpStatus.NO_CONTENT
