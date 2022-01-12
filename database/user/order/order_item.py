@@ -40,16 +40,20 @@ class OrderItem(DocumentObject):
         self.selected_modification_button_data = selected_modification_button_data
 
     def __repr__(self):
-        return jsonpickle.encode(OrderItem.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(OrderItem.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
     def get_db_repr(
-            order_item: OrderItem
+            order_item: OrderItem,
+            get_long_names: bool = False
     ) -> dict:
         res = {value: getattr(order_item, key) for key, value in OrderItem.LONG_TO_SHORT.items()}
         res.setdefault("smb", [])
         res["smb"] = list(map(lambda smb: SelectedModificationButton.get_db_repr(smb), res["smb"]))
         res["pi"] = res["pi"].image_id
+
+        if get_long_names:
+            res = {order_item.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
 

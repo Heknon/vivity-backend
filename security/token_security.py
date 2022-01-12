@@ -9,6 +9,7 @@ from database import User, BusinessUser, blacklist
 from security import AuthenticationResult, EMAIL_REGEX, VALIDATOR
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def validate_email(email: str):
@@ -84,8 +85,8 @@ class LoginTokenFactory(JwtTokenFactory):
 
 
 class BlacklistJwtTokenAuth(JwtTokenAuth):
-    def __init__(self, on_fail=lambda request, response: None, check_blacklist: bool = False, raw_document=False, no_fail=False):
-        super().__init__(on_fail)
+    def __init__(self, on_fail=lambda request, response: None, check_blacklist: bool = False, raw_document=False, no_fail=False, fail_on_null_result=True):
+        super().__init__(on_fail, fail_on_null_result)
         self.check_blacklist = check_blacklist
         self.raw_document = raw_document
         self.no_fail = no_fail
@@ -94,6 +95,7 @@ class BlacklistJwtTokenAuth(JwtTokenAuth):
         if self.no_fail:
             return True, AuthenticationResult.Success
 
+        logger.debug(f"Trying token {token}")
         if token is None:
             return False, AuthenticationResult.TokenInvalid
         elif self.check_blacklist and self.is_token_blacklisted(request.headers["Authorization"][8:]):
@@ -126,7 +128,7 @@ class BusinessJwtTokenAuth(BlacklistJwtTokenAuth):
         if not base_auth_result[0]:
             return base_auth_result
 
-        if "business_name" in token and token["business_name"] is not None:
+        if "business_id" in token and token["business_id"] is not None:
             return True, AuthenticationResult.Success
 
         return False, AuthenticationResult.NotBusiness

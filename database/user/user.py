@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from typing import List
 
 import bcrypt
@@ -19,6 +18,7 @@ from body import TokenData
 from database import users_collection, DocumentObject, Image, blacklist
 
 logger = logging.getLogger(__name__)
+
 
 class User(DocumentObject):
     LONG_TO_SHORT = {
@@ -113,14 +113,18 @@ class User(DocumentObject):
 
     @staticmethod
     def get_by_id(_id: ObjectId, raw_document=True) -> User | dict | None:
-        return users_collection.find_one({"_id": _id}) \
-            if raw_document else User.document_repr_to_object(users_collection.find_one({"_id": _id}))
+        document = users_collection.find_one({"_id": _id})
+
+        return document if raw_document else User.document_repr_to_object(document)
 
     def __repr__(self):
-        return jsonpickle.encode(User.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(User.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
-    def document_repr_to_object(doc, **kwargs) -> User:
+    def document_repr_to_object(doc, **kwargs) -> User | None:
+        if doc is None:
+            return None
+
         import database.user.business_user as business_user
 
         cls = business_user.BusinessUser if "bid" in doc else User
@@ -140,13 +144,16 @@ class User(DocumentObject):
         return cls(**args)
 
     @staticmethod
-    def get_db_repr(user: User):
+    def get_db_repr(user: User, get_long_names: bool = False):
         res = {value: getattr(user, key) for key, value in User.LONG_TO_SHORT.items()}
 
         res["pfp"] = res["pfp"].image_id
         res["op"] = user_options.UserOptions.get_db_repr(user.options)
         res["sa"] = list(map(lambda address: shipping_address.ShippingAddress.get_db_repr(address), user.shipping_addresses))
         res["lk"] = liked_items_module.LikedItems.get_db_repr(user.liked_items)
+
+        if get_long_names:
+            res = {user.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
 

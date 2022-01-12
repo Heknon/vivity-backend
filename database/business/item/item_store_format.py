@@ -86,12 +86,15 @@ class ItemStoreFormat(DocumentObject):
         )
 
     def __repr__(self):
-        return jsonpickle.encode(ItemStoreFormat.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(ItemStoreFormat.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
-    def get_db_repr(isf: ItemStoreFormat) -> dict:
+    def get_db_repr(isf: ItemStoreFormat, get_long_names: bool = False) -> dict:
         res = {value: getattr(isf, key) for key, value in ItemStoreFormat.LONG_TO_SHORT.items()}
         res["mod"] = list(map(lambda mod: mod_module.ModificationButton.get_db_repr(mod), res.get("mod", [])))
+
+        if get_long_names:
+            res = {isf.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
 

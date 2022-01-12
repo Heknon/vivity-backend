@@ -4,8 +4,8 @@ import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
-from database import DocumentObject, users_collection
 import database.user as user
+from database import DocumentObject, users_collection
 
 
 class ShippingAddress(DocumentObject):
@@ -75,7 +75,7 @@ class ShippingAddress(DocumentObject):
         )
 
     def __repr__(self):
-        return jsonpickle.encode(ShippingAddress.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(ShippingAddress.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs):
@@ -113,8 +113,8 @@ class ShippingAddress(DocumentObject):
         return []
 
     @staticmethod
-    def get_db_repr(address: ShippingAddress):
-        return {
+    def get_db_repr(address: ShippingAddress, get_long_names: bool = False):
+        res = {
             "ph": address.phone,
             "ml": address.email,
             "zp": address.zip_code,
@@ -123,6 +123,11 @@ class ShippingAddress(DocumentObject):
             "ct": address.city,
             "cty": address.country
         }
+
+        if get_long_names:
+            res = {address.lengthen_field_name(key): value for key, value in res.items()}
+
+        return res
 
     def shorten_field_name(self, field_name):
         return ShippingAddress.LONG_TO_SHORT.get(field_name, None)

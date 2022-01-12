@@ -37,13 +37,16 @@ class Review(DocumentObject):
         self.images = images
 
     def __repr__(self):
-        return jsonpickle.encode(Review.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(Review.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
-    def get_db_repr(review: Review):
+    def get_db_repr(review: Review, get_long_names: bool = False):
         res = {value: getattr(review, key) for key, value in Review.LONG_TO_SHORT.items()}
         res["pfp"] = res["pfp"].image_id
         res["imgs"] = list(map(lambda img: img.image_id, res.get("imgs", [])))
+
+        if get_long_names:
+            res = {review.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
 

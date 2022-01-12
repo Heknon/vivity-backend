@@ -107,11 +107,14 @@ class Category(DocumentObject):
         )
 
     def __repr__(self):
-        return jsonpickle.encode(Category.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(Category.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
-    def get_db_repr(category: Category):
+    def get_db_repr(category: Category, get_long_names: bool = False):
         res = {value: getattr(category, key) for key, value in Category.LONG_TO_SHORT.items()}
+
+        if get_long_names:
+            res = {category.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
 

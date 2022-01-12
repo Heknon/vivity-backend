@@ -45,7 +45,7 @@ class BusinessUser(user_module.User):
         self.business_id = business_id
 
     def __repr__(self):
-        return jsonpickle.encode(BusinessUser.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(BusinessUser.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
     def get_by_email(email, raw_document=True) -> BusinessUser | dict | None:
@@ -58,13 +58,16 @@ class BusinessUser(user_module.User):
             if raw_document else BusinessUser.document_repr_to_object(users_collection.find_one({"_id": _id}))
 
     @staticmethod
-    def get_db_repr(user: BusinessUser):
+    def get_db_repr(user: BusinessUser, get_long_names: bool = False):
         res = {value: getattr(user, key) for key, value in BusinessUser.LONG_TO_SHORT.items()}
 
         res["pfp"] = res["pfp"].image_id
         res["op"] = user_options.UserOptions.get_db_repr(user.options)
         res["sa"] = list(map(lambda address: shipping_address.ShippingAddress.get_db_repr(address), user.shipping_addresses))
         res["lk"] = liked_items_module.LikedItems.get_db_repr(user.liked_items)
+
+        if get_long_names:
+            res = {user.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
 

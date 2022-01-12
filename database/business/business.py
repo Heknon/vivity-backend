@@ -49,7 +49,7 @@ class Business(DocumentObject):
         self.national_business_id = national_business_id
 
         self.updatable_fields = {
-            "name", "national_business_id", "owner_id_card"
+            "name", "national_business_id", "owner_id_card", "contact", "locations"
         }
 
     def generate_update_methods(self):
@@ -209,7 +209,7 @@ class Business(DocumentObject):
         ))
 
     def __repr__(self):
-        return jsonpickle.encode(Business.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(Business.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
     def get_business_by_id(business_id: ObjectId) -> Business:
@@ -222,7 +222,7 @@ class Business(DocumentObject):
         return businesses_collection.count_documents({"_id": _id}, limit=1) == 1
 
     @staticmethod
-    def get_db_repr(business: Business):
+    def get_db_repr(business: Business, get_long_names: bool = False):
         res = {value: getattr(business, key) for key, value in Business.LONG_TO_SHORT.items()}
 
         res["loc"] = list(map(lambda loc: Location.get_db_repr(loc), res.get("loc", [])))
@@ -230,6 +230,9 @@ class Business(DocumentObject):
         res["cat"] = list(map(lambda category: category_module.Category.get_db_repr(category), res.get("cat", [])))
         res["cntc"] = contact_module.Contact.get_db_repr(res["cntc"])
         res["oic"] = res["oic"].image_id
+
+        if get_long_names:
+            res = {business.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
 

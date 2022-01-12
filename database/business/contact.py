@@ -66,11 +66,14 @@ class Contact(DocumentObject):
         )
 
     def __repr__(self):
-        return jsonpickle.encode(Contact.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(Contact.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
-    def get_db_repr(contact: Contact):
+    def get_db_repr(contact: Contact, get_long_names: bool = False):
         res = {value: getattr(contact, key) for key, value in Contact.LONG_TO_SHORT.items()}
+
+        if get_long_names:
+            res = {contact.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
 

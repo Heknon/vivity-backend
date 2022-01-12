@@ -26,7 +26,7 @@ class Order(DocumentObject):
         self.items = items
 
     def __repr__(self):
-        return jsonpickle.encode(Order.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(Order.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
     def get_db_repr(order: Order):

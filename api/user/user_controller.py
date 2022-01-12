@@ -5,7 +5,7 @@ from web_framework_v2 import RequestBody, QueryParameter
 
 from api import auth_fail
 from body import UserSettings, PaymentData, DictNoNone
-from database import User, BusinessUser
+from database import User, BusinessUser, UserOptions
 from security import BlacklistJwtTokenAuth
 from .. import app
 
@@ -85,6 +85,9 @@ class UserData:
             distance_unit=user_settings.distance_unit if hasattr(user_settings, "distance_unit") else None,
             business_search_radius=user_settings.business_search_radius if hasattr(user_settings, "business_search_radius") else None
         )
+
+        if len(update) == 0:
+            return f"Must pass at least one of the following fields: {user.options.updatable_fields}"
 
         return user.options.update_fields(**update).options
 

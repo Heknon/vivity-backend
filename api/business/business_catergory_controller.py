@@ -1,5 +1,7 @@
-from web_framework_v2 import PathVariable, RequestBody
+from bson import ObjectId
+from web_framework_v2 import PathVariable, RequestBody, QueryParameter, HttpResponse, HttpStatus
 
+from database import Business
 from .. import app
 from body import UpdateCategoryData
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
@@ -9,9 +11,15 @@ from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
 @app.get("/business/{business_id}/category/{category}")
 def get_category_data(
         business_id: PathVariable("business_id"),
-        category: PathVariable("category")
+        response: HttpResponse,
+        category: PathVariable("category"),
+        include_items: QueryParameter("include_item", bool)
 ):
-    pass
+    business = Business.get_business_by_id(ObjectId(business_id))
+
+    if business is None:
+        response.status = HttpStatus.NOT_FOUND
+        return f"No business with ID {business_id} exists"
 
 
 @BusinessJwtTokenAuth()

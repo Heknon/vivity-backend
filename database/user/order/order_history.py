@@ -43,13 +43,16 @@ class OrderHistory(DocumentObject):
         )
 
     def __repr__(self):
-        return jsonpickle.encode(OrderHistory.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(OrderHistory.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
-    def get_db_repr(order_history: OrderHistory):
+    def get_db_repr(order_history: OrderHistory, get_long_names: bool = False):
         res = {value: getattr(order_history, key) for key, value in Order.LONG_TO_SHORT.items()}
         res.setdefault("ods", [])
         res["ods"] = list(map(lambda order: Order.get_db_repr(order), res["ods"]))
+
+        if get_long_names:
+            res = {order_history.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
 

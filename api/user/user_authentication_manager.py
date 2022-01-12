@@ -1,3 +1,4 @@
+import logging
 from typing import Union
 
 from web_framework_v2 import RequestBody, QueryParameter, JwtSecurity, HttpResponse, HttpStatus, HttpRequest
@@ -7,6 +8,8 @@ from communication import email_service
 from database import User, BusinessUser, blacklist
 from security import BlacklistJwtTokenAuth, EMAIL_REGEX, VALIDATOR
 from .. import app
+
+logger = logging.getLogger(__name__)
 
 
 class UserForgot:
@@ -39,7 +42,7 @@ class UserForgot:
         return "Email sent."
 
     @staticmethod
-    @BlacklistJwtTokenAuth(no_fail=True)
+    @BlacklistJwtTokenAuth(no_fail=True, fail_on_null_result=False)
     @app.patch("/user/reset")
     def update_user_password(
             request: HttpRequest,
@@ -55,12 +58,13 @@ class UserForgot:
 
         user: Union[User, None] = user
         previous_token = request.headers.get("Authorization", None)
+        previous_token = previous_token[8:] if previous_token is not None and len(previous_token) > 8 else None
         used_temp_auth = False
 
         if temporary_auth is not None and user is None:
             if blacklist.in_blacklist(temporary_auth):
                 return "You can only change your password once per reset request."
-            res = JwtSecurity.decode_token(temporary_auth)
+            res = JwtSecurity.decode_token(temporary_auth) if temporary_auth is not None else None
 
             if res is None:
                 response.status = HttpStatus.UNAUTHORIZED
@@ -73,9 +77,23 @@ class UserForgot:
 
             used_temp_auth = True
 
+        if user is None and not used_temp_auth:
+            response.status = HttpStatus.UNAUTHORIZED
+            return "Unauthorized"
+
+        if previous_token is not None and not used_temp_auth:
+            if blacklist.in_blacklist(previous_token):
+                logger.debug(f"Blacklisted token trying to reset password {previous_token}")
+                response.status = HttpStatus.UNAUTHORIZED
+                return "Previous token was blacklisted and cannot be used."
+
+        if user.compare_hash(password["password"]):
+            response.status = HttpStatus.BAD_REQUEST
+            return "Please do not use the same password as your previous one."
+
         user = user.update_fields(password=user.hash_password(password["password"]))
-        if previous_token is not None and len(previous_token) > 8:
-            blacklist.add_to_blacklist(previous_token[8:])
+        if previous_token is not None:
+            blacklist.add_to_blacklist(previous_token)
 
         if used_temp_auth:
             blacklist.add_to_blacklist(temporary_auth)
@@ -99,3 +117,4 @@ class DeleteUser:
         user: Union[User, BusinessUser] = user
         User.delete_by_id(user._id)
         response.status = HttpStatus.NO_CONTENT
+        return "Successfully deleted!"

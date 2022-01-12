@@ -123,10 +123,10 @@ class ModificationButton(DocumentObject):
         )
 
     def __repr__(self):
-        return jsonpickle.encode(ModificationButton.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(ModificationButton.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
-    def get_db_repr(mod: ModificationButton):
+    def get_db_repr(mod: ModificationButton, get_long_names: bool = False):
         res = {value: getattr(mod, key) for key, value in ModificationButton.LONG_TO_SHORT.items()}
 
         data_type = mod.data_type
@@ -136,6 +136,9 @@ class ModificationButton(DocumentObject):
             res["data"] = list(map(lambda color_bytes: Color.get_db_repr(color_bytes), res.get("data", [])))
         elif data_type == ModificationButtonDataType.Image:
             res["data"] = list(map(lambda image: image.image_id, res.get("data", [])))
+
+        if get_long_names:
+            res = {mod.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
 

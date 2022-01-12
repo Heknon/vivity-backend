@@ -70,7 +70,7 @@ class UserOptions(DocumentObject):
         )
 
     def __repr__(self):
-        return jsonpickle.encode(UserOptions.get_db_repr(self), unpicklable=False)
+        return jsonpickle.encode(UserOptions.get_db_repr(self, True), unpicklable=False)
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs) -> UserOptions:
@@ -96,8 +96,8 @@ class UserOptions(DocumentObject):
         }
 
     @staticmethod
-    def get_db_repr(options: UserOptions):
-        return {
+    def get_db_repr(options: UserOptions, get_long_names: bool = False):
+        res = {
             "bsr": options.business_search_radius,
             "du": options.distance_unit,
             "ct": options.currency_type,
@@ -105,6 +105,11 @@ class UserOptions(DocumentObject):
             "jes": options.jeans_size,
             "sws": options.sweats_size
         }
+
+        if get_long_names:
+            res = {options.lengthen_field_name(key): value for key, value in res.items()}
+
+        return res
 
     def shorten_field_name(self, field_name):
         return UserOptions.LONG_TO_SHORT.get(field_name, None)

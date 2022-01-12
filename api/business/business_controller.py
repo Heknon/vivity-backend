@@ -3,8 +3,8 @@ from typing import Union
 from bson import ObjectId
 from web_framework_v2 import QueryParameter, RequestBody, PathVariable, HttpRequest, HttpResponse, HttpStatus
 
-from body import BusinessUpdateData, AuthorizedRouteRequestBody
-from database import Business, Location, User, BusinessUser, blacklist
+from body import BusinessUpdateData, AuthorizedRouteRequestBody, DictNoNone
+from database import Business, Location, User, BusinessUser, blacklist, Contact
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
 from .. import app, auth_fail
 
@@ -67,10 +67,74 @@ class BusinessData:
     @BusinessJwtTokenAuth(on_fail=auth_fail)
     @app.patch("/business")
     def update_business_data(
-            token_data: BusinessJwtTokenAuth,
-            business_update_data: RequestBody(BusinessUpdateData)
+            user: BusinessJwtTokenAuth,
+            business_update_data: RequestBody(BusinessUpdateData),
+            response: HttpResponse,
     ):
-        pass
+        user: BusinessUser = user
+        business_update_data: BusinessUpdateData
+        business: Business = Business.get_business_by_id(user.business_id)
+
+        if business is None:
+            response.status = HttpStatus.UNAUTHORIZED
+            return f"No business with ID {user.business_id}"
+
+        contact = Contact.get_db_repr(business.contact)
+
+        if hasattr(business_update_data, "contact") and type(business_update_data.contact) is dict:
+            for field_name in contact.keys():
+                lengthened = business.contact.lengthen_field_name(field_name)
+                if lengthened not in business_update_data.contact:
+                    continue
+
+                new_value = business_update_data.contact[lengthened]
+                contact[field_name] = new_value
+
+        locs = set(business.locations)
+        if hasattr(business_update_data, "add_locations"):
+            locations = [business_update_data.add_locations] if type(business_update_data.add_locations) is not list \
+                else business_update_data.add_locations
+
+            for location in locations:
+                if type(location) is not dict:
+                    continue
+
+                longitude = location.get("longitude", None)
+                latitude = location.get("latitude", None)
+                if longitude is None or latitude is None:
+                    continue
+
+                locs.add(Location(longitude, latitude))
+
+        if hasattr(business_update_data, "remove_locations"):
+            locations = [business_update_data.remove_locations] if type(business_update_data.remove_locations) is not list \
+                else business_update_data.remove_locations
+            for location in locations:
+                if type(location) is not dict:
+                    continue
+
+                longitude = location.get("longitude", None)
+                latitude = location.get("latitude", None)
+                if longitude is None or latitude is None:
+                    continue
+
+                newLoc = Location(longitude, latitude)
+                if newLoc in locs:
+                    locs.remove(newLoc)
+
+        locations = list(locs)
+        result = DictNoNone(
+            name=business_update_data.name if hasattr(business_update_data, "name") else None,
+            contact=contact,
+            locations=list(map(Location.get_db_repr, locations))
+        )
+
+        business = business.update_fields(**result)
+        return {
+            "name": business.name,
+            "contact": Contact.get_db_repr(business.contact, True),
+            "locations": list(map(lambda loc: Location.get_db_repr(loc, True), business.locations))
+        }
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
