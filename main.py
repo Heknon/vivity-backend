@@ -1,7 +1,6 @@
 import logging
 
 import api  # must import to register package and execute its code.
-from database import Location
 
 logger = logging.getLogger(__name__)
 

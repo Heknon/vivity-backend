@@ -173,7 +173,7 @@ class BusinessData:
 
         user = user.promote_to_business_user(user._id, business._id)
         newToken = user.build_token(encoded=True)
-        blacklist.add_to_blacklist(request.headers["Authorization"][8:])
+        blacklist.add_to_blacklist(request.headers["authorization"][8:])
         return {
             "new_user_token": newToken,
             "business": business

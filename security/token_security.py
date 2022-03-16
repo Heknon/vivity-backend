@@ -98,7 +98,7 @@ class BlacklistJwtTokenAuth(JwtTokenAuth):
         logger.debug(f"Trying token {token}")
         if token is None:
             return False, AuthenticationResult.TokenInvalid
-        elif self.check_blacklist and self.is_token_blacklisted(request.headers["Authorization"][8:]):
+        elif self.check_blacklist and self.is_token_blacklisted(request.headers["authorization"][8:]):
             return False, AuthenticationResult.PresentInBlacklist
 
         return True, AuthenticationResult.Success

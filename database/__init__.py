@@ -1,11 +1,12 @@
 __all__ = ["DocumentObject", "users_collection", "businesses_collection", "orders_collection", "User", "UserOptions", "LikedItems",
            "ShippingAddress", "Order", "OrderItem", "OrderHistory", "ModificationButtonDataType", "SelectedModificationButton", "Image",
            "Color", "ModificationButton", "ModificationButtonSide", "Review", "Item", "ItemStoreFormat", "Location", "Category", "Contact",
-           "BusinessUser", "blacklist_collection", "blacklist", "Business"]
+           "BusinessUser", "blacklist_collection", "blacklist", "Business", "s3Bucket"]
 
 from pymongo import MongoClient, collection, database, TEXT
 
 from .color import Color
+from .S3Bucket import s3Bucket
 from .doc_object import DocumentObject
 from .image import Image
 from .location import Location

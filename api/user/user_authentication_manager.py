@@ -57,7 +57,7 @@ class UserForgot:
             return f"Must pass a valid password. {VALIDATOR.properties}"
 
         user: Union[User, None] = user
-        previous_token = request.headers.get("Authorization", None)
+        previous_token = request.headers.get("authorization", None)
         previous_token = previous_token[8:] if previous_token is not None and len(previous_token) > 8 else None
         used_temp_auth = False
 
