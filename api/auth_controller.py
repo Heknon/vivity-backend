@@ -33,7 +33,9 @@ def register(
 def login(
         token_created: LoginTokenFactory,
 ):
-    return token_created
+    return {
+        "token": token_created
+    }
 
 
 @app.get("/user/verify")

@@ -116,3 +116,9 @@ class UserOptions(DocumentObject):
 
     def lengthen_field_name(self, field_name):
         return UserOptions.SHORT_TO_LONG.get(field_name, None)
+
+    def __getstate__(self):
+        return UserOptions.get_db_repr(self, True)
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)

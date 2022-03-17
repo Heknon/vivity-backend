@@ -66,9 +66,16 @@ class LikedItems(DocumentObject):
     def __repr__(self):
         return jsonpickle.encode(LikedItems.get_db_repr(self), unpicklable=False)
 
+    def __getstate__(self):
+        return LikedItems.get_db_repr(self)
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+
     @staticmethod
     def default_object_repr() -> dict:
         return {}
+
 
     def get_db_repr(self):
         return self._liked_items

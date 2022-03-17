@@ -134,3 +134,9 @@ class ShippingAddress(DocumentObject):
 
     def lengthen_field_name(self, field_name):
         return ShippingAddress.SHORT_TO_LONG.get(field_name, None)
+
+    def __getstate__(self):
+        return ShippingAddress.get_db_repr(self, True)
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)

@@ -1,6 +1,8 @@
+import json
 from collections import Iterable
 from typing import Union
 
+import jsonpickle
 from web_framework_v2 import RequestBody, QueryParameter
 
 from api import auth_fail
@@ -65,6 +67,7 @@ class UserData:
 
                 result["orders"].append(order_history.orders[index])
 
+        print(f"RESULT: {result}")
         return result
 
     @staticmethod
