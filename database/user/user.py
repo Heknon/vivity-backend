@@ -45,7 +45,8 @@ class User(DocumentObject):
             password: bytes,
             options: user_options.UserOptions,
             shipping_addresses: List[shipping_address.ShippingAddress],
-            liked_items: liked_items_module.LikedItems
+            liked_items: liked_items_module.LikedItems,
+            cart: List[int]
     ):
         self._id = _id
         self.email = email
@@ -234,3 +235,7 @@ class User(DocumentObject):
 
     def lengthen_field_name(self, field_name):
         return User.SHORT_TO_LONG.get(field_name, None)
+
+    @property
+    def id(self):
+        return self._id

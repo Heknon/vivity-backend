@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Dict
+from typing import List
 
 import jsonpickle
 from bson import ObjectId
@@ -32,7 +32,7 @@ class Business(DocumentObject):
             rating: float,
             name: str,
             locations: List[Location],
-            items: Dict[ObjectId, item_module.Item],
+            items: List[ObjectId],
             categories: List[category_module.Category],
             contact: contact_module.Contact,
             owner_id_card: Image,
@@ -106,12 +106,13 @@ class Business(DocumentObject):
 
     def get_categories_with_items(self):
         categories = dict()
+        items: dict = {item.id: item for item in self.get_items()}
 
         for category in self.categories:
             categories[category.name] = []
 
             for item_id in category.items_ids:
-                categories[category.name].append(self.items[item_id])
+                categories[category.name].append(items[item_id])
 
     def get_category_by_name(self, name: str) -> category_module.Category:
         return category_module.Category.document_repr_to_object(
@@ -120,38 +121,34 @@ class Business(DocumentObject):
             )["cat"][0]
         )
 
-    def add_item(self, item: item_module.Item) -> Business:
+    def add_item(self, item_id: ObjectId) -> Business:
         return Business.document_repr_to_object(
             businesses_collection.find_one_and_update(
                 {"_id": self._id},
-                {"$set": {f"it.{item._id.binary.decode('cp437')}": item_module.Item.get_db_repr(item)}},
+                {"$addToSet": {f"it": item_id}},
                 return_document=ReturnDocument.AFTER
             )
         )
 
     def remove_item(self, item_id: ObjectId) -> Business:
+        """
+        Removes item from business items NOT from items collection.
+        :param item_id: item object id
+        """
         return Business.document_repr_to_object(
             businesses_collection.find_one_and_update(
                 {"_id": self._id},
-                {"$unset": {f"it.{item_id.binary.decode('cp437')}": 1}},
+                {"$pull": {f"it": item_id}},
                 return_document=ReturnDocument.AFTER
             )
         )
 
     def get_items(self) -> List[item_module.Item]:
-        item_doc = businesses_collection.find({"_id": self._id}, {f"it": 1, "_id": 0})
-        if item_doc is None or len(item_doc) == 0:
-            return []
+        return item_module.Item.get_items(*self.items)
 
-        return list(map(
-            lambda doc: item_module.Item.document_repr_to_object(doc),
-            item_doc
-        ))
-
-    def get_item(self, item_id: ObjectId) -> item_module.Item:
-        return item_module.Item.document_repr_to_object(
-            businesses_collection.find_one({"_id": self._id}, {f"it.{item_id.binary.decode('cp437')}": 1, "_id": 0})["it"].values()[0]
-        )
+    @staticmethod
+    def get_item(item_id: ObjectId) -> item_module.Item:
+        return item_module.Item.get_item(item_id)
 
     def add_location(self, location: Location) -> Business:
         return Business.document_repr_to_object(
@@ -191,7 +188,7 @@ class Business(DocumentObject):
                 rating=0,
                 name=name,
                 locations=[location],
-                items=dict(),
+                items=[],
                 categories=[],
                 contact=contact_module.Contact(
                     business_id=_id,
@@ -226,7 +223,7 @@ class Business(DocumentObject):
         res = {value: getattr(business, key) for key, value in Business.LONG_TO_SHORT.items()}
 
         res["loc"] = list(map(lambda loc: Location.get_db_repr(loc), res.get("loc", [])))
-        res["it"] = list(map(lambda item: item_module.Item.get_db_repr(item), res.get("it", [])))
+        res["it"] = res.get("it", [])
         res["cat"] = list(map(lambda category: category_module.Category.get_db_repr(category), res.get("cat", [])))
         res["cntc"] = contact_module.Contact.get_db_repr(res["cntc"])
         res["oic"] = res["oic"].image_id
@@ -243,7 +240,7 @@ class Business(DocumentObject):
         rating = sum(map(lambda item: item.calculate_rating(), args.get("items", [])))
         args["rating"] = rating
         args["locations"] = list(map(lambda loc_doc: Location.document_repr_to_object(loc_doc), args.get("locations", [])))
-        args["items"] = list(map(lambda item_doc: item_module.Item.document_repr_to_object(item_doc, business_id=args["_id"]), args.get("items", [])))
+        args["items"] = args.get("items", [])
         args["categories"] = \
             list(map(lambda category_doc: category_module.Category.document_repr_to_object(category_doc, business_id=args["_id"]),
                      args.get("categories", [])))

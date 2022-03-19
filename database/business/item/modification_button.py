@@ -7,8 +7,8 @@ import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
-from database import DocumentObject, Image, Color, businesses_collection
-import database.business.business as business
+from database import DocumentObject, Image, Color, items_collection, items_collection
+import database.business.item as item_module
 
 
 class ModificationButtonDataType(Enum):
@@ -35,7 +35,6 @@ class ModificationButton(DocumentObject):
 
     def __init__(
             self,
-            business_id: ObjectId,
             item_id: ObjectId,
             side: ModificationButtonSide,
             name: str,
@@ -43,7 +42,6 @@ class ModificationButton(DocumentObject):
             data_type: ModificationButtonDataType,
             multi_select: bool
     ):
-        self.business_id = business_id
         self.item_id = item_id
         self.side = side
 
@@ -56,35 +54,35 @@ class ModificationButton(DocumentObject):
             "name", "multi_select"
         }
 
-        self.access_prefix = f"it.{self.item_id.binary.decode('cp437')}.isf.mod.{self.side.value}"
+        self.access_prefix = f"isf.mod.{self.side.value}"
 
     def generate_update_methods(self):
         for field_name in self.updatable_fields:
             method_name = "update_" + field_name
             setattr(self, method_name, lambda value: self.update_field(self.shorten_field_name(field_name), value))
 
-    def update_field(self, field_name, value) -> business.Business:
-        return business.Business.document_repr_to_object(
-            businesses_collection.find_one_and_update(
-                {"_id": self.business_id},
+    def update_field(self, field_name, value) -> item_module.Item:
+        return item_module.Item.document_repr_to_object(
+            items_collection.find_one_and_update(
+                {"_id": self.item_id},
                 {"$set": {f"{self.access_prefix}.{field_name}": value}},
                 return_document=ReturnDocument.AFTER
             )
         )
 
-    def update_fields(self, **kwargs) -> business.Business:
+    def update_fields(self, **kwargs) -> item_module.Item:
         filtered_kwargs = filter(lambda item: item[0] in self.updatable_fields, kwargs.items())
         update_dict = {
             f"{self.access_prefix}.{self.shorten_field_name(key)}": value for key, value in filtered_kwargs
         }
 
-        return business.Business.document_repr_to_object(
-            businesses_collection.find_one_and_update(
-                {"_id": self.business_id}, {"$set": update_dict}, return_document=ReturnDocument.AFTER
+        return item_module.Item.document_repr_to_object(
+            items_collection.find_one_and_update(
+                {"_id": self.item_id}, {"$set": update_dict}, return_document=ReturnDocument.AFTER
             )
         )
 
-    def add_data(self, data: str | Color | Image) -> business.Business:
+    def add_data(self, data: str | Color | Image) -> item_module.Item:
         assert type(data) is str or type(data) is Color or type(data) is Image, f"Data passed must be 'Color', 'Image' or 'str', not {type(data)}!"
         translated_data = data
 
@@ -93,31 +91,31 @@ class ModificationButton(DocumentObject):
         elif type(data) is Image:
             translated_data = data.image_id
 
-        return business.Business.document_repr_to_object(
-            businesses_collection.find_one_and_update(
-                {"_id": self.business_id},
+        return item_module.Item.document_repr_to_object(
+            items_collection.find_one_and_update(
+                {"_id": self.item_id},
                 {"$addToSet": {f"{self.access_prefix}.dta": translated_data}},
                 return_document=ReturnDocument.AFTER
             )
         )
 
-    def remove_data(self, index: int) -> business.Business:
-        businesses_collection.update_one({"_id": self.business_id}, {"$unset": {f"{self.access_prefix}.dta.{index}": 1}})
+    def remove_data(self, index: int) -> item_module.Item:
+        items_collection.update_one({"_id": self.item_id}, {"$unset": {f"{self.access_prefix}.dta.{index}": 1}})
 
-        return business.Business.document_repr_to_object(
-            businesses_collection.find_one_and_update(
-                {"_id": self.business_id}, {"$pull": {f"{self.access_prefix}.dta": None}}, return_document=ReturnDocument.AFTER
+        return item_module.Item.document_repr_to_object(
+            items_collection.find_one_and_update(
+                {"_id": self.item_id}, {"$pull": {f"{self.access_prefix}.dta": None}}, return_document=ReturnDocument.AFTER
             )
         )
 
     def set_data_type(self, data_type: ModificationButtonDataType):
-        businesses_collection.update_one(
-            {"_id": self.business_id}, {"$set": {f"{self.access_prefix}.dt": data_type.value}}
+        items_collection.update_one(
+            {"_id": self.item_id}, {"$set": {f"{self.access_prefix}.dt": data_type.value}}
         )
 
-        return business.Business.document_repr_to_object(
-            businesses_collection.find_one_and_update(
-                {"_id": self.business_id}, {"$set": {f"{self.access_prefix}.dta", []}},
+        return item_module.Item.document_repr_to_object(
+            items_collection.find_one_and_update(
+                {"_id": self.item_id}, {"$set": {f"{self.access_prefix}.dta", []}},
                 return_document=ReturnDocument.AFTER
             )
         )
@@ -154,7 +152,6 @@ class ModificationButton(DocumentObject):
         elif data_type == ModificationButtonDataType.Image:
             args["data"] = list(map(lambda image_id: Image(image_id), args.get("data", [])))
 
-        args["business_id"] = kwargs["business_id"]
         args["item_id"] = kwargs["item_id"]
         args["side"] = kwargs["side"]
 

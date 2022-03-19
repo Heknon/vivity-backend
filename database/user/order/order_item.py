@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List
 
 import jsonpickle
+from bson import ObjectId
 
 from database import DocumentObject, Image
 from database.business.item import SelectedModificationButton
@@ -10,7 +11,6 @@ from database.business.item import SelectedModificationButton
 
 class OrderItem(DocumentObject):
     LONG_TO_SHORT = {
-        "business_id": "bid",
         "item_id": "iid",
         "preview_image": "pi",
         "title": "ttl",
@@ -23,15 +23,13 @@ class OrderItem(DocumentObject):
 
     def __init__(
             self,
-            business_id: bytes,
-            item_id: int,
+            item_id: ObjectId,
             preview_image: Image,
             title: str,
             subtitle: str,
             description: str,
             selected_modification_button_data: List[SelectedModificationButton]
     ):
-        self.business_id = business_id
         self.item_id = item_id
         self.preview_image = preview_image
         self.title = title

@@ -1,5 +1,7 @@
 from typing import List
 
+from database import Image
+
 
 class ModificationButton:
     def __init__(self, name, preferred_side, data: List[bytes], data_type: int, multi_select: bool):
@@ -11,8 +13,9 @@ class ModificationButton:
 
 
 class ItemCreation:
-    def __init__(self, title: str, price: float, brand: str, category: str, tags: List[str]):
+    def __init__(self, title: str, subtitle: str, price: float, brand: str, category: str, tags: List[str]):
         self.title = title
+        self.subtitle = subtitle
         self.price = price
         self.brand = brand
         self.category = category
@@ -30,10 +33,8 @@ class ItemUpdate:
             category: str,
             add_tags: List[str],
             remove_tags: List[str],
-            add_image: bytes,
+            add_image_id: str,
             remove_image: int,
-            remove_modification_button: int,
-            add_modification_button: ModificationButton,
             stock: int
     ):
         self.title = title
@@ -44,15 +45,13 @@ class ItemUpdate:
         self.category = category
         self.add_tags = add_tags
         self.remove_tags = remove_tags
-        self.add_image = add_image
+        self.add_image_id = add_image_id
         self.remove_image = remove_image
-        self.remove_modification_button = remove_modification_button
-        self.add_modification_button = add_modification_button
         self.stock = stock
 
 
 class Review:
-    def __init__(self, poster_id: bytes, pfp_id: bytes, poster_name: str, rating: float, text_content: str, image_ids: List[str]):
+    def __init__(self, poster_id: bytes, pfp_id: str, poster_name: str, rating: float, text_content: str, image_ids: List[str]):
         self.poster_id = poster_id
         self.pfp_id = pfp_id
         self.poster_name = poster_name

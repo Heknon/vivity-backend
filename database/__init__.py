@@ -17,6 +17,7 @@ test_collection: collection.Collection = client.test
 users_collection: collection.Collection = client.users
 businesses_collection: collection.Collection = client.businesses
 orders_collection: collection.Collection = client.orders
+items_collection: collection.Collection = client.items
 blacklist_collection: collection.Collection = client.blacklist
 
 users_collection.create_index([("email", TEXT)], unique=True)

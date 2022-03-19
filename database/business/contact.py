@@ -80,7 +80,7 @@ class Contact(DocumentObject):
     @staticmethod
     def document_repr_to_object(doc, **kwargs) -> Contact:
         args = {key: doc[value] for key, value in Contact.LONG_TO_SHORT.items()}
-        args["business_id"] = kwargs["business_id"]
+        args["business_id"] = kwargs.get("business_id", None)
 
         return Contact(**args)
 

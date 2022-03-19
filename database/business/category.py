@@ -8,7 +8,7 @@ from pymongo import ReturnDocument
 
 import database.business.business as business
 import database.business.item.item as item_module
-from database import DocumentObject, businesses_collection
+from database import DocumentObject, businesses_collection, items_collection
 
 
 class Category(DocumentObject):
@@ -62,12 +62,9 @@ class Category(DocumentObject):
         )
 
     def get_items(self):
-        accepts = {f"it.{item_id.binary.decode('cp437')}": 1 for item_id in self.items_ids}
-        accepts["_id"] = 0
-
         return list(map(
             lambda doc: item_module.Item.document_repr_to_object(doc),
-            businesses_collection.find_one({"_id": self.business_id}, **accepts)["it"].values()
+            items_collection.find_one({"_id": {"$in": self.items_ids}})
         ))
 
     def add_item(self, item_id: ObjectId):
@@ -121,7 +118,7 @@ class Category(DocumentObject):
     @staticmethod
     def document_repr_to_object(doc, **kwargs):
         args = {key: doc[value] for key, value in Category.LONG_TO_SHORT.items()}
-        args["business_id"] = kwargs["business_id"]
+        args["business_id"] = kwargs.get("business_id", None)
 
         return Category(**args)
 
