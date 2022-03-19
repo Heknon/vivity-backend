@@ -28,6 +28,7 @@ class Category(DocumentObject):
         self.business_id = business_id
         self.name = name
         self.items_ids = items_ids
+        self.items = None
 
         self.updatable_fields = {
             "name"
@@ -47,19 +48,29 @@ class Category(DocumentObject):
             )
         )
 
-    def update_fields(self, **kwargs) -> business.Business:
-        filtered_kwargs = filter(lambda item: item[0] in self.updatable_fields, kwargs.items())
-        update_dict = {
-            f"cat.$.{self.shorten_field_name(key)}": value for key, value in filtered_kwargs
-        }
+    def update_fields(
+            self,
+            name: str,
+            added_ids: List[ObjectId],
+            removed_ids: List[ObjectId],
 
-        return business.Business.document_repr_to_object(
-            businesses_collection.find_one_and_update(
-                {"_id": self.business_id, "cat": {"$elemMatch": {"name": self.name}}},
-                {"$set": update_dict},
-                return_document=ReturnDocument.AFTER
-            )
-        )
+    ):
+        return Category.document_repr_to_object(businesses_collection.find_one_and_update(
+            {"_id": self.business_id, "cat": {"$elemMatch": {"name": self.name}}},
+            {
+                "$set": {
+                    "cat.$.nm": name if name is not None else self.name,
+                },
+                "$pullAll": {
+                    "cat.$.iti": removed_ids
+                } if len(removed_ids) > 0 else {},
+                "$addToSet": {
+                    "cat.$.iti": {"$each": added_ids}
+                } if len(added_ids) > 0 else {},
+            },
+            upsert=False,
+            return_document=ReturnDocument.AFTER
+        ))
 
     def get_items(self):
         return list(map(

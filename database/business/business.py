@@ -114,12 +114,17 @@ class Business(DocumentObject):
             for item_id in category.items_ids:
                 categories[category.name].append(items[item_id])
 
-    def get_category_by_name(self, name: str) -> category_module.Category:
-        return category_module.Category.document_repr_to_object(
+    def get_category_by_name(self, name: str, get_items: bool) -> category_module.Category:
+        category: category_module.Category = category_module.Category.document_repr_to_object(
             businesses_collection.find_one(
                 {"_id": self._id, "cat": {"$elemMatch": {"name": name}}}, {"cat.$": 1, "_id": 0}
             )["cat"][0]
         )
+
+        if get_items:
+            category.items = item_module.Item.get_items(*category.items_ids)
+
+        return category
 
     def add_item(self, item_id: ObjectId) -> Business:
         return Business.document_repr_to_object(
@@ -255,3 +260,7 @@ class Business(DocumentObject):
 
     def lengthen_field_name(self, field_name):
         return Business.SHORT_TO_LONG.get(field_name, None)
+
+    @property
+    def id(self):
+        return self._id
