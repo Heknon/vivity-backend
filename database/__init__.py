@@ -1,7 +1,7 @@
 __all__ = ["DocumentObject", "users_collection", "businesses_collection", "orders_collection", "User", "UserOptions", "LikedItems",
            "ShippingAddress", "Order", "OrderItem", "OrderHistory", "ModificationButtonDataType", "SelectedModificationButton", "Image",
            "Color", "ModificationButton", "ModificationButtonSide", "Review", "Item", "ItemStoreFormat", "Location", "Category", "Contact",
-           "BusinessUser", "blacklist_collection", "blacklist", "Business", "s3Bucket"]
+           "BusinessUser", "blacklist_collection", "blacklist", "Business", "s3Bucket", "Cart", "CartItem"]
 
 from pymongo import MongoClient, collection, database, TEXT
 

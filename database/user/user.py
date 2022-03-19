@@ -14,8 +14,9 @@ import database.user.liked_items as liked_items_module
 import database.user.order.order_history as order_history_module
 import database.user.shipping_address as shipping_address
 import database.user.user_options as user_options
+import database.user.cart as cart_module
 from body import TokenData
-from database import users_collection, DocumentObject, Image, blacklist
+from database import users_collection, DocumentObject, Image, blacklist, Cart
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,8 @@ class User(DocumentObject):
         "options": "op",
         "shipping_addresses": "sa",
         "liked_items": "lk",
-        "profile_picture": "pfp"
+        "profile_picture": "pfp",
+        "cart": "crt"
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -46,7 +48,7 @@ class User(DocumentObject):
             options: user_options.UserOptions,
             shipping_addresses: List[shipping_address.ShippingAddress],
             liked_items: liked_items_module.LikedItems,
-            cart: List[int]
+            cart: Cart
     ):
         self._id = _id
         self.email = email
@@ -57,6 +59,7 @@ class User(DocumentObject):
         self.options = options
         self.shipping_addresses = shipping_addresses
         self.liked_items = liked_items
+        self.cart = cart
         self.order_history: order_history_module.OrderHistory = None
 
         self.updatable_fields = {"email", "phone", "password", "profile_picture"}
@@ -142,6 +145,9 @@ class User(DocumentObject):
         args["liked_items"] = \
             liked_items_module.LikedItems.document_repr_to_object(doc["lk"], _id=doc["_id"]) if doc.get("lk", None) is not None else None
 
+        args["cart"] = \
+            cart_module.Cart.document_repr_to_object(doc["crt"], _id=doc["_id"]) if doc.get("crt", None) is not None else None
+
         return cls(**args)
 
     @staticmethod
@@ -152,6 +158,7 @@ class User(DocumentObject):
         res["op"] = user_options.UserOptions.get_db_repr(user.options)
         res["sa"] = list(map(lambda address: shipping_address.ShippingAddress.get_db_repr(address), user.shipping_addresses))
         res["lk"] = liked_items_module.LikedItems.get_db_repr(user.liked_items)
+        res["crt"] = cart_module.Cart.get_db_repr(user.cart)
 
         if get_long_names:
             res = {user.lengthen_field_name(key): value for key, value in res.items()}
@@ -192,7 +199,8 @@ class User(DocumentObject):
             "pfp": None,
             "op": user_options.UserOptions.default_object_repr(),
             "sa": shipping_address.ShippingAddress.default_object_repr(),
-            "lk": liked_items_module.LikedItems.default_object_repr()
+            "lk": liked_items_module.LikedItems.default_object_repr(),
+            "crt": []
         }
 
     def build_token(self, encoded=False):

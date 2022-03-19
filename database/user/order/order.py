@@ -44,6 +44,17 @@ class Order(DocumentObject):
             items=list(map(lambda order_item: OrderItem.document_repr_to_object(order_item), doc.get("it", [])))
         )
 
+    @staticmethod
+    def get_db_repr(order_history: OrderHistory, get_long_names: bool = False):
+        res = {value: getattr(order_history, key) for key, value in Order.LONG_TO_SHORT.items()}
+        res.setdefault("ods", [])
+        res["ods"] = list(map(lambda order: Order.get_db_repr(order), res["ods"]))
+
+        if get_long_names:
+            res = {order_history.lengthen_field_name(key): value for key, value in res.items()}
+
+        return res
+
     def shorten_field_name(self, field_name):
         return Order.LONG_TO_SHORT.get(field_name, None)
 
