@@ -115,7 +115,7 @@ class BlacklistJwtTokenAuth(JwtTokenAuth):
         if decoded_token is None:
             return None
 
-        return User.get_by_id(ObjectId(decoded_token["id"].encode("cp437")), self.raw_document)
+        return User.get_by_id(ObjectId(decoded_token["id"]), self.raw_document)
 
 
 class BusinessJwtTokenAuth(BlacklistJwtTokenAuth):

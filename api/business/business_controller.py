@@ -23,6 +23,7 @@ class BusinessData:
             location: QueryParameter("locations", bool),
             rating: QueryParameter("rating", bool),
     ):
+        # TODO: Find where errors are caught and add a custom handler there.
         business_id = ObjectId(business_id)
         business = Business.get_business_by_id(business_id)
 

@@ -16,7 +16,6 @@ class UserData:
     """
     handles user data
     """
-
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.get("/user")
@@ -26,15 +25,18 @@ class UserData:
             order_ids: QueryParameter("orders", list),
             get_address: QueryParameter("addresses", bool),
             get_liked_items: QueryParameter("liked_items", bool),
+            get_cart: QueryParameter("liked_items", bool),
     ):
         user: Union[User, BusinessUser] = user
         result = {
+            "_id": str(user.id),
             "email": user.email,
             "name": user.name,
             "phone": user.phone,
             "options": user.options,
             "addresses": user.shipping_addresses,
-            "liked_items": user.liked_items
+            "liked_items": user.liked_items,
+            "cart": user.cart,
         }
 
         if type(user) is BusinessUser:
@@ -53,6 +55,9 @@ class UserData:
         if not get_liked_items:
             del result["liked_items"]
 
+        if not get_cart:
+            del result["liked_items"]
+
         if order_ids == "all":
             result["order_history"] = user.get_order_history()
         elif order_ids is not None:
@@ -67,7 +72,6 @@ class UserData:
 
                 result["orders"].append(order_history.orders[index])
 
-        print(f"RESULT: {result}")
         return result
 
     @staticmethod

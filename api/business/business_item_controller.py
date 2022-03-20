@@ -16,6 +16,14 @@ def get_items(
     return Item.get_items(item_ids)
 
 
+@BlacklistJwtTokenAuth()
+@app.get("/business/item")
+def get_items(
+        item_ids: RequestBody()
+):
+    return Item.get_items(*list(map(lambda item_id: ObjectId(item_id), item_ids)))
+
+
 @BusinessJwtTokenAuth()
 @app.post("/business/item")
 def create_item(
@@ -25,9 +33,11 @@ def create_item(
 ):
     item_creation_data: ItemCreation = item_data
     user: BusinessUser = token_data
+    business = Business.get_business_by_id(user.business_id)
 
     result = Item.save_item(
         business_id=user.business_id,
+        business_name=business.name,
         price=item_creation_data.price,
         images=[],
         preview_image=-1,
@@ -45,7 +55,7 @@ def create_item(
         stock=0
     )
 
-    Business.get_business_by_id(result.business_id).add_item(result.id)
+    business.add_item(result.id)
     res.status = HttpStatus.CREATED
     return result
 
@@ -89,7 +99,6 @@ def update_item(
         item = item.remove_image(item_update_data.remove_image)
 
     return item
-
 
 
 @BusinessJwtTokenAuth()

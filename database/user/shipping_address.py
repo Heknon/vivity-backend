@@ -12,21 +12,24 @@ class ShippingAddress(DocumentObject):
     LONG_TO_SHORT = {
         "phone": "ph",
         "email": "ml",
+        "name": "nm",
         "zip_code": "zp",
-        "house_number": "hn",
         "street": "st",
         "city": "ct",
         "country": "cty",
+        "province": "prv",
+        "extra_info": "etc"
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
 
     def __init__(
             self,
+            name: str,
             phone: str,
-            email: str,
             zip_code: str,
-            house_number: str,
+            province: str,
+            extra_info: str,
             street: str,
             city: str,
             country: str,
@@ -35,17 +38,18 @@ class ShippingAddress(DocumentObject):
     ):
         self.user_id = user_id
         self.address_id = address_id
+        self.name = name
         self.phone = phone
-        self.email = email
+        self.province = province
+        self.extra_info = extra_info
         self.zip_code = zip_code
-        self.house_number = house_number
         self.street = street
         self.city = city
         self.country = country
 
         self.updatable_fields = {
             "phone", "email", "zip_code",
-            "house_number", "street", "city", "country"
+            "street", "city", "country", "extra_info", "province", "name"
         }
 
         self.generate_update_methods()
@@ -82,13 +86,14 @@ class ShippingAddress(DocumentObject):
         return ShippingAddress(
             user_id=kwargs["_id"],
             address_id=kwargs["address_index"],
-            phone=doc.ph,
-            email=doc.ml,
-            zip_code=doc.zp,
-            house_number=doc.hn,
-            street=doc.st,
-            city=doc.ct,
-            country=doc.cty,
+            phone=doc['ph'],
+            zip_code=doc['zp'],
+            street=doc['st'],
+            city=doc['ct'],
+            country=doc['cty'],
+            province=doc["prv"],
+            extra_info=doc["etc"],
+            name=doc["nm"]
         )
 
     @staticmethod
@@ -116,12 +121,13 @@ class ShippingAddress(DocumentObject):
     def get_db_repr(address: ShippingAddress, get_long_names: bool = False):
         res = {
             "ph": address.phone,
-            "ml": address.email,
             "zp": address.zip_code,
-            "hn": address.house_number,
             "st": address.street,
             "ct": address.city,
-            "cty": address.country
+            "cty": address.country,
+            "etc": address.extra_info,
+            "prv": address.province,
+            "nm": address.name
         }
 
         if get_long_names:

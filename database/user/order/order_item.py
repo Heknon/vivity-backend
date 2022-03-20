@@ -17,7 +17,7 @@ class OrderItem(DocumentObject):
         "subtitle": "sbt",
         "description": "dsc",
         "price": "p",
-        "selected_modification_button_data": "smb",
+        "modifiers_chosen": "mc",
         "amount": "amt"
     }
 
@@ -32,7 +32,7 @@ class OrderItem(DocumentObject):
             description: str,
             amount: int,
             price: float,
-            selected_modification_button_data: List[SelectedModificationButton]
+            modifiers_chosen: List[SelectedModificationButton]
     ):
         self.item_id = item_id
         self.amount = amount
@@ -41,7 +41,7 @@ class OrderItem(DocumentObject):
         self.title = title
         self.subtitle = subtitle
         self.description = description
-        self.selected_modification_button_data = selected_modification_button_data
+        self.modifiers_chosen = modifiers_chosen
 
     def __repr__(self):
         return jsonpickle.encode(OrderItem.get_db_repr(self, True), unpicklable=False)
@@ -52,8 +52,8 @@ class OrderItem(DocumentObject):
             get_long_names: bool = False
     ) -> dict:
         res = {value: getattr(order_item, key) for key, value in OrderItem.LONG_TO_SHORT.items()}
-        res.setdefault("smb", [])
-        res["smb"] = list(map(lambda smb: SelectedModificationButton.get_db_repr(smb), res["smb"]))
+        res.setdefault("mc", [])
+        res["mc"] = list(map(lambda mc: SelectedModificationButton.get_db_repr(mc, get_long_names), res["mc"]))
         res["pi"] = res["pi"].image_id
 
         if get_long_names:
@@ -64,9 +64,9 @@ class OrderItem(DocumentObject):
     @staticmethod
     def document_repr_to_object(doc, **kwargs):
         args = {key: doc[value] for key, value in OrderItem.LONG_TO_SHORT.items()}
-        args.setdefault("selected_modification_button_data", [])
-        args["selected_modification_button_data"] = \
-            list(map(lambda mod_button: SelectedModificationButton.document_repr_to_object(mod_button), args["selected_modification_button_data"]))
+        args.setdefault("modifiers_chosen", [])
+        args["modifiers_chosen"] = \
+            list(map(lambda mod_button: SelectedModificationButton.document_repr_to_object(mod_button), args["modifiers_chosen"]))
         args["preview_image"] = Image(doc[args["preview_image"]])
 
         return OrderItem(**args)

@@ -64,7 +64,7 @@ class LikedItems(DocumentObject):
         return jsonpickle.encode(LikedItems.get_db_repr(self), unpicklable=False)
 
     def __getstate__(self):
-        return LikedItems.get_db_repr(self)
+        return LikedItems.get_db_repr(self, True)
 
     def __setstate__(self, state):
         self.__dict__.update(state)
@@ -73,8 +73,8 @@ class LikedItems(DocumentObject):
     def default_object_repr() -> list:
         return []
 
-    def get_db_repr(self):
-        return self._liked_items
+    def get_db_repr(self, get_long_names: bool = False):
+        return list(map(lambda item_id: str(item_id) if get_long_names else item_id, self._liked_items))
 
     def shorten_field_name(self, field_name):
         return None

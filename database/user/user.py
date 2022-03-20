@@ -16,7 +16,7 @@ import database.user.shipping_address as shipping_address
 import database.user.user_options as user_options
 import database.user.cart as cart_module
 from body import TokenData
-from database import users_collection, DocumentObject, Image, blacklist, Cart
+from database import users_collection, DocumentObject, Image, blacklist
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class User(DocumentObject):
             options: user_options.UserOptions,
             shipping_addresses: List[shipping_address.ShippingAddress],
             liked_items: liked_items_module.LikedItems,
-            cart: Cart
+            cart: cart_module.Cart
     ):
         self._id = _id
         self.email = email
@@ -78,6 +78,29 @@ class User(DocumentObject):
 
     def insert(self) -> ObjectId:
         return users_collection.insert_one(User.get_db_repr(self)).inserted_id
+
+    def add_address(self, address: shipping_address.ShippingAddress):
+        return User.document_repr_to_object(
+            users_collection.find_one_and_update(
+                {"_id": self._id},
+                {"$addToSet": {"sa": shipping_address.ShippingAddress.get_db_repr(address)}},
+                return_document=ReturnDocument.AFTER
+            )
+        )
+
+    def remove_address(self, index: int):
+        users_collection.find_one_and_update(
+            {"_id": self._id},
+            {"$unset": {f"sa.{index}": 1}}
+        )
+
+        return User.document_repr_to_object(
+            users_collection.find_one_and_update(
+                {"_id": self._id},
+                {"$pull": {f"sa": None}},
+                return_document=ReturnDocument.AFTER
+            )
+        )
 
     def get_order_history(self) -> order_history_module.OrderHistory | None:
         order_hist = order_history_module.OrderHistory.get_by_id(self._id)
@@ -132,13 +155,13 @@ class User(DocumentObject):
         import database.user.business_user as business_user
 
         cls = business_user.BusinessUser if "bid" in doc else User
-        args = {key: doc[value] for key, value in cls.LONG_TO_SHORT.items()}
+        args = {key: doc.get(value, None) for key, value in cls.LONG_TO_SHORT.items()}
 
         args["profile_picture"] = Image(doc.get("pfp", None))
         args["options"] = user_options.UserOptions.document_repr_to_object(doc["op"], _id=doc["_id"]) if doc.get("op", None) is not None else None
         args["shipping_addresses"] = list(
             map(
-                lambda i, sa: shipping_address.ShippingAddress.document_repr_to_object(sa, _id=doc["_id"], address_index=i),
+                lambda t: shipping_address.ShippingAddress.document_repr_to_object(t[1], _id=doc["_id"], address_index=t[0]),
                 enumerate(doc.get("sa", []))
             )
         )
@@ -146,7 +169,7 @@ class User(DocumentObject):
             liked_items_module.LikedItems.document_repr_to_object(doc["lk"], _id=doc["_id"]) if doc.get("lk", None) is not None else None
 
         args["cart"] = \
-            cart_module.Cart.document_repr_to_object(doc["crt"], _id=doc["_id"]) if doc.get("crt", None) is not None else None
+            cart_module.Cart.document_repr_to_object(doc["crt"], _id=doc["_id"]) if doc.get("crt", None) is not None else cart_module.Cart(args["_id"], [])
 
         return cls(**args)
 
@@ -155,12 +178,13 @@ class User(DocumentObject):
         res = {value: getattr(user, key) for key, value in User.LONG_TO_SHORT.items()}
 
         res["pfp"] = res["pfp"].image_id
-        res["op"] = user_options.UserOptions.get_db_repr(user.options)
-        res["sa"] = list(map(lambda address: shipping_address.ShippingAddress.get_db_repr(address), user.shipping_addresses))
-        res["lk"] = liked_items_module.LikedItems.get_db_repr(user.liked_items)
-        res["crt"] = cart_module.Cart.get_db_repr(user.cart)
+        res["op"] = user_options.UserOptions.get_db_repr(user.options, get_long_names)
+        res["sa"] = list(map(lambda address: shipping_address.ShippingAddress.get_db_repr(address, get_long_names), user.shipping_addresses))
+        res["lk"] = liked_items_module.LikedItems.get_db_repr(user.liked_items, get_long_names)
+        res["crt"] = cart_module.Cart.get_db_repr(user.cart, get_long_names) if user.cart is not None else []
 
         if get_long_names:
+            res['_id'] = str(res['_id'])
             res = {user.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
@@ -205,7 +229,7 @@ class User(DocumentObject):
 
     def build_token(self, encoded=False):
         token = {
-            "id": self._id.binary.decode("cp437"),
+            "id": str(self._id),
             "name": self.name,
             "profile_picture": self.profile_picture.image_id,
             "email": self.email,
@@ -213,7 +237,7 @@ class User(DocumentObject):
         }
 
         if hasattr(self, "business_id"):
-            token["business_id"] = self.business_id.binary.decode('cp437')
+            token["business_id"] = str(self.business_id)
 
         return token if not encoded else JwtSecurity.create_token(token, blacklist.TOKEN_EXPIRATION_TIME)
 
@@ -247,3 +271,11 @@ class User(DocumentObject):
     @property
     def id(self):
         return self._id
+
+    def __getstate__(self):
+        res = User.get_db_repr(self, True)
+        del res['password']
+        return res
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)

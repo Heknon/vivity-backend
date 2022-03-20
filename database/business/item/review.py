@@ -46,6 +46,7 @@ class Review(DocumentObject):
         res["imgs"] = list(map(lambda img: img.image_id, res.get("imgs", [])))
 
         if get_long_names:
+            res["pid"] = str(res["pid"])
             res = {review.lengthen_field_name(key): value for key, value in res.items()}
 
         return res

@@ -28,7 +28,7 @@ class ItemStoreFormat(DocumentObject):
             title: str,
             subtitle: str,
             description: str,
-            modification_buttons: Dict[mod_module.ModificationButtonSide, mod_module.ModificationButton]
+            modification_buttons: List[mod_module.ModificationButton]
     ):
         self.item_id = item_id
         self.title = title
@@ -90,7 +90,7 @@ class ItemStoreFormat(DocumentObject):
     @staticmethod
     def get_db_repr(isf: ItemStoreFormat, get_long_names: bool = False) -> dict:
         res = {value: getattr(isf, key) for key, value in ItemStoreFormat.LONG_TO_SHORT.items()}
-        res["mod"] = list(map(lambda mod: mod_module.ModificationButton.get_db_repr(mod), res.get("mod", [])))
+        res["mod"] = list(map(lambda mod: mod_module.ModificationButton.get_db_repr(mod, get_long_names), res.get("mod", [])))
 
         if get_long_names:
             res = {isf.lengthen_field_name(key): value for key, value in res.items()}
@@ -101,9 +101,9 @@ class ItemStoreFormat(DocumentObject):
     def document_repr_to_object(doc, **kwargs):
         args = {key: doc[value] for key, value in ItemStoreFormat.LONG_TO_SHORT.items()}
         args["modification_buttons"] = \
-            list(map(lambda side_num, mod_doc: mod_module.ModificationButton.document_repr_to_object(
-                mod_doc, item_id=kwargs["item_id"], side=side_num
-            ), args.get("modification_buttons", {}).items()))
+            list(map(lambda mod_doc: mod_module.ModificationButton.document_repr_to_object(
+                mod_doc, item_id=kwargs["item_id"]
+            ), args.get("modification_buttons", [])))
 
         args["item_id"] = kwargs["item_id"]
 
@@ -114,3 +114,9 @@ class ItemStoreFormat(DocumentObject):
 
     def lengthen_field_name(self, field_name):
         return ItemStoreFormat.SHORT_TO_LONG.get(field_name, None)
+
+    def __getstate__(self):
+        return ItemStoreFormat.get_db_repr(self, True)
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)

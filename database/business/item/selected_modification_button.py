@@ -34,6 +34,7 @@ class SelectedModificationButton(DocumentObject):
         res["dt"] = selected_modification_button.data_type.value
 
         if get_long_names:
+            res["sd"] = list(map(lambda data: data if isinstance(data, str) else int(data), res["sd"]))
             res = {selected_modification_button.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
@@ -41,6 +42,7 @@ class SelectedModificationButton(DocumentObject):
     @staticmethod
     def document_repr_to_object(doc, **kwargs):
         args = {key: doc[value] for key, value in SelectedModificationButton.LONG_TO_SHORT.items()}
+        args["data_type"] = ModificationButtonDataType._value2member_map_[args["data_type"]]
 
         return SelectedModificationButton(**args)
 

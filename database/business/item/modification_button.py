@@ -28,7 +28,8 @@ class ModificationButton(DocumentObject):
         "name": "nm",
         "data": "dta",
         "data_type": "dt",
-        "multi_select": "ms"
+        "multi_select": "ms",
+        "side": "sd"
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -51,7 +52,7 @@ class ModificationButton(DocumentObject):
         self.multi_select = multi_select
 
         self.updatable_fields = {
-            "name", "multi_select"
+            "name", "multi_select", "side"
         }
 
         self.access_prefix = f"isf.mod.{self.side.value}"
@@ -128,12 +129,14 @@ class ModificationButton(DocumentObject):
         res = {value: getattr(mod, key) for key, value in ModificationButton.LONG_TO_SHORT.items()}
 
         data_type = mod.data_type
-        res["data_type"] = data_type.value
+        res["dt"] = data_type.value
 
         if data_type == ModificationButtonDataType.Color:
-            res["data"] = list(map(lambda color_bytes: Color.get_db_repr(color_bytes), res.get("data", [])))
+            res["dta"] = list(map(lambda color_bytes: Color.get_db_repr(color_bytes), res.get("data", [])))
         elif data_type == ModificationButtonDataType.Image:
-            res["data"] = list(map(lambda image: image.image_id, res.get("data", [])))
+            res["dta"] = list(map(lambda image: image.image_id, res.get("data", [])))
+
+        res["sd"] = res["sd"].value
 
         if get_long_names:
             res = {mod.lengthen_field_name(key): value for key, value in res.items()}
@@ -152,8 +155,8 @@ class ModificationButton(DocumentObject):
         elif data_type == ModificationButtonDataType.Image:
             args["data"] = list(map(lambda image_id: Image(image_id), args.get("data", [])))
 
+        args["side"] = ModificationButtonSide._value2member_map_[args["side"]]
         args["item_id"] = kwargs["item_id"]
-        args["side"] = kwargs["side"]
 
         return ModificationButton(**args)
 

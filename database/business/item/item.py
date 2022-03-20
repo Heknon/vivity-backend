@@ -15,6 +15,7 @@ class Item(DocumentObject):
     LONG_TO_SHORT = {
         "_id": "_id",
         "business_id": "bid",
+        "business_name": "bnm",
         "price": "p",
         "images": "im",
         "preview_image": "pi",
@@ -31,6 +32,7 @@ class Item(DocumentObject):
     def __init__(
             self,
             business_id: ObjectId,
+            business_name: str,
             price: float,
             images: List[Image],
             preview_image: int,
@@ -43,6 +45,7 @@ class Item(DocumentObject):
             _id: ObjectId = ObjectId(),
     ):
         self.business_id = business_id
+        self.business_name = business_name
         self._id = _id
         self.price = price
         self.images = images
@@ -190,12 +193,14 @@ class Item(DocumentObject):
         res = {value: getattr(item, key) for key, value in Item.LONG_TO_SHORT.items()}
 
         res["pi"] = res["pi"].image_id if res.get("pi", None) is not None else None
-        res["isf"] = isf_module.ItemStoreFormat.get_db_repr(res["isf"])
+        res["isf"] = isf_module.ItemStoreFormat.get_db_repr(res["isf"], get_long_names)
 
         res["im"] = list(map(lambda image: image.image_id, res["im"]))
-        res["rs"] = list(map(lambda review: review_module.Review.get_db_repr(review), res.get("rs", [])))
+        res["rs"] = list(map(lambda review: review_module.Review.get_db_repr(review, get_long_names), res.get("rs", [])))
 
         if get_long_names:
+            res["bid"] = str(res["bid"])
+            res["_id"] = str(res["_id"])
             res = {item.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
@@ -232,6 +237,7 @@ class Item(DocumentObject):
     @staticmethod
     def save_item(
             business_id: ObjectId,
+            business_name: str,
             price: float,
             images: List[Image],
             preview_image: int,
@@ -248,6 +254,7 @@ class Item(DocumentObject):
             {"_id": _id},
             Item.get_db_repr(Item(
                 business_id,
+                business_name,
                 price,
                 images,
                 preview_image,
@@ -283,3 +290,9 @@ class Item(DocumentObject):
     @property
     def id(self):
         return self._id
+
+    def __getstate__(self):
+        return Item.get_db_repr(self, True)
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
