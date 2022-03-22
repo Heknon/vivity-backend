@@ -35,7 +35,7 @@ class BusinessData:
             result = dict()
 
             result["name"] = business.name
-            result["locations"] = business.locations
+            result["locations"] = business.location
             result["items"] = business.items
             result["categories"] = business.categories if not include_category_items else business.get_categories_with_items()
             result["contact"] = business.contact
@@ -57,7 +57,7 @@ class BusinessData:
             result["contact"] = business.contact
 
         if location:
-            result["locations"] = business.locations
+            result["locations"] = business.location
 
         if rating:
             result["rating"] = business.rating
@@ -91,7 +91,7 @@ class BusinessData:
                 new_value = business_update_data.contact[lengthened]
                 contact[field_name] = new_value
 
-        locs = set(business.locations)
+        locs = set(business.location)
         if hasattr(business_update_data, "add_locations"):
             locations = [business_update_data.add_locations] if type(business_update_data.add_locations) is not list \
                 else business_update_data.add_locations
@@ -134,7 +134,7 @@ class BusinessData:
         return {
             "name": business.name,
             "contact": Contact.get_db_repr(business.contact, True),
-            "locations": list(map(lambda loc: Location.get_db_repr(loc, True), business.locations))
+            "locations": list(map(lambda loc: Location.get_db_repr(loc), business.location))
         }
 
     @staticmethod

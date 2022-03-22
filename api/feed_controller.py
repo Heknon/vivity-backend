@@ -1,6 +1,7 @@
 from web_framework_v2 import QueryParameter
 
 from api.api_utils import auth_fail
+from database import User, items_collection, Item
 from security import BlacklistJwtTokenAuth
 from . import app
 
@@ -15,7 +16,21 @@ def user_explore(
         category: QueryParameter("category", str),
         query: QueryParameter("query", str),
 ):
-    pass
+    user: User = token_data
+    loc = [radius_center_latitude, radius_center_longitude]
+
+    vicinity_items = items_collection.find({
+        "loc": {
+            "$nearSphere": {
+                "$geometry": {
+                    "type": "Point",
+                    "coordinates": loc
+                },
+                "$maxDistance": radius + 1000  # add to radius to account for inaccuracies
+            }
+        }
+    })
+    return list(map(lambda doc: Item.document_repr_to_object(doc), vicinity_items))
 
 
 @BlacklistJwtTokenAuth(on_fail=auth_fail)

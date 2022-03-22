@@ -2,48 +2,35 @@ from __future__ import annotations
 
 import jsonpickle
 
-from database import DocumentObject
 
-
-class Location(DocumentObject):
-    LONG_TO_SHORT = {
-        "longitude": "li",
-        "latitude": "lt"
-    }
-
-    SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
-
+class Location:
     def __init__(
             self,
-            longitude: float,
-            latitude: float
+            latitude: float,
+            longitude: float
     ):
         self.longitude = longitude
         self.latitude = latitude
 
     def __repr__(self):
-        return jsonpickle.encode(Location.get_db_repr(self, True), unpicklable=False)
+        return jsonpickle.encode(Location.get_db_repr(self), unpicklable=False)
 
     @staticmethod
     def get_db_repr(location: Location, get_long_names: bool = False):
-        res = {value: getattr(location, key) for key, value in Location.LONG_TO_SHORT.items()}
-
-        if get_long_names:
-            res = {location.lengthen_field_name(key): value for key, value in res.items()}
-
-        return res
+        return {
+            "type": "Point",
+            "coordinates": [location.latitude, location.longitude]
+        } if not get_long_names else [location.latitude, location.longitude]
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs):
-        args = {key: doc[value] for key, value in Location.LONG_TO_SHORT.items()}
+        return Location(doc['coordinates'][0], doc['coordinates'][1])
 
-        return Location(**args)
+    def __getstate__(self):
+        return Location.get_db_repr(self, True)
 
-    def shorten_field_name(self, field_name):
-        return Location.LONG_TO_SHORT.get(field_name, None)
-
-    def lengthen_field_name(self, field_name):
-        return Location.SHORT_TO_LONG.get(field_name, None)
+    def __setstate__(self, state):
+        self.__dict__.update(state)
 
     def __hash__(self):
         return self.longitude.__hash__() + self.latitude.__hash__()

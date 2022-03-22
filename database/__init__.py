@@ -3,10 +3,10 @@ __all__ = ["DocumentObject", "users_collection", "businesses_collection", "order
            "Color", "ModificationButton", "ModificationButtonSide", "Review", "Item", "ItemStoreFormat", "Location", "Category", "Contact",
            "BusinessUser", "blacklist_collection", "blacklist", "Business", "s3Bucket", "Cart", "CartItem"]
 
-from pymongo import MongoClient, collection, database, TEXT
+from pymongo import MongoClient, collection, database, TEXT, GEOSPHERE
 
-from .color import Color
 from .S3Bucket import s3Bucket
+from .color import Color
 from .doc_object import DocumentObject
 from .image import Image
 from .location import Location
@@ -21,6 +21,8 @@ items_collection: collection.Collection = client.items
 blacklist_collection: collection.Collection = client.blacklist
 
 users_collection.create_index([("email", TEXT)], unique=True)
+items_collection.create_index([("loc", GEOSPHERE)], name="item_location_index", unique=False)
+businesses_collection.create_index([("loc", GEOSPHERE)], name="business_location_index", unique=False)
 
 from .blacklist import Blacklist
 

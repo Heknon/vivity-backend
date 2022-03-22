@@ -8,7 +8,7 @@ from pymongo import ReturnDocument
 
 import database.business.item.item_store_format as isf_module
 import database.business.item.review as review_module
-from database import Image, DocumentObject, items_collection
+from database import Image, DocumentObject, items_collection, Location
 
 
 class Item(DocumentObject):
@@ -25,6 +25,7 @@ class Item(DocumentObject):
         "category": "cat",
         "tags": "tg",
         "stock": "stk",
+        "location": "loc"
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -42,6 +43,7 @@ class Item(DocumentObject):
             category: str,
             tags: List[str],
             stock: int,
+            location: Location,
             _id: ObjectId = ObjectId(),
     ):
         self.business_id = business_id
@@ -56,6 +58,7 @@ class Item(DocumentObject):
         self.category = category
         self.tags = tags
         self.stock = stock
+        self.location = location
         self.should_recalculate_rating = True
 
         self.updatable_fields = {
@@ -197,6 +200,7 @@ class Item(DocumentObject):
 
         res["im"] = list(map(lambda image: image.image_id, res["im"]))
         res["rs"] = list(map(lambda review: review_module.Review.get_db_repr(review, get_long_names), res.get("rs", [])))
+        res['loc'] = Location.get_db_repr(res['loc'], True)
 
         if get_long_names:
             res["bid"] = str(res["bid"])
@@ -216,6 +220,7 @@ class Item(DocumentObject):
         args["images"] = list(map(lambda image_id: Image(image_id), args["images"]))
         args["reviews"] = list(map(lambda review_doc: review_module.Review.document_repr_to_object(review_doc), args["reviews"]))
         args["business_id"] = args["business_id"]
+        args['location'] = Location.document_repr_to_object(args['location'])
 
         return Item(**args)
 
@@ -247,30 +252,32 @@ class Item(DocumentObject):
             category: str,
             tags: List[str],
             stock: int,
+            location: Location
     ) -> Item:
         _id = ObjectId()
 
         return Item.document_repr_to_object(items_collection.find_one_and_replace(
             {"_id": _id},
             Item.get_db_repr(Item(
-                business_id,
-                business_name,
-                price,
-                images,
-                preview_image,
-                reviews,
-                isf_module.ItemStoreFormat(
-                    _id,
-                    item_store_format.title,
-                    item_store_format.subtitle,
-                    item_store_format.description,
-                    item_store_format.modification_buttons,
+                business_id=business_id,
+                business_name=business_name,
+                price=price,
+                images=images,
+                preview_image=preview_image,
+                reviews=reviews,
+                item_store_format=isf_module.ItemStoreFormat(
+                    item_id=_id,
+                    title=item_store_format.title,
+                    subtitle=item_store_format.subtitle,
+                    description=item_store_format.description,
+                    modification_buttons=item_store_format.modification_buttons,
                 ),
-                brand,
-                category,
-                tags,
-                stock,
-                _id
+                brand=brand,
+                category=category,
+                tags=tags,
+                stock=stock,
+                location=location,
+                _id=_id,
             )),
             upsert=True,
             return_document=ReturnDocument.AFTER

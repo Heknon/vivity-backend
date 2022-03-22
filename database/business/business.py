@@ -11,12 +11,12 @@ import database.business.contact as contact_module
 import database.business.item.item as item_module
 from database import DocumentObject, businesses_collection, Location, Image
 
-
+# TODO: Add option to switch location of business- should switch all items as well.
 class Business(DocumentObject):
     LONG_TO_SHORT = {
         "_id": "_id",
         "name": "nm",
-        "locations": "loc",
+        "location": "loc",
         "items": "it",
         "categories": "cat",
         "contact": "cntc",
@@ -31,7 +31,7 @@ class Business(DocumentObject):
             _id: ObjectId,
             rating: float,
             name: str,
-            locations: List[Location],
+            location: Location,
             items: List[ObjectId],
             categories: List[category_module.Category],
             contact: contact_module.Contact,
@@ -41,7 +41,7 @@ class Business(DocumentObject):
         self._id = _id
         self.rating = rating
         self.name = name
-        self.locations = locations
+        self.location = location
         self.items = items
         self.categories = categories
         self.contact = contact
@@ -49,7 +49,7 @@ class Business(DocumentObject):
         self.national_business_id = national_business_id
 
         self.updatable_fields = {
-            "name", "national_business_id", "owner_id_card", "contact", "locations"
+            "name", "national_business_id", "owner_id_card", "contact", "location"
         }
 
     def generate_update_methods(self):
@@ -155,24 +155,6 @@ class Business(DocumentObject):
     def get_item(item_id: ObjectId) -> item_module.Item:
         return item_module.Item.get_item(item_id)
 
-    def add_location(self, location: Location) -> Business:
-        return Business.document_repr_to_object(
-            businesses_collection.find_one_and_update(
-                {"_id": self._id},
-                {"$addToSet": {"loc": Location.get_db_repr(location)}},
-                return_document=ReturnDocument.AFTER
-            )
-        )
-
-    def remove_location(self, location: Location) -> Business:
-        return Business.document_repr_to_object(
-            businesses_collection.find_one_and_update(
-                {"_id": self._id},
-                {"$pull": {"loc": {"$elemMatch": Location.get_db_repr(location)}}},
-                return_document=ReturnDocument.AFTER
-            )
-        )
-
     @staticmethod
     def create_business(
             name: str,
@@ -192,7 +174,7 @@ class Business(DocumentObject):
                 _id=_id,
                 rating=0,
                 name=name,
-                locations=[location],
+                location=location,
                 items=[],
                 categories=[],
                 contact=contact_module.Contact(
@@ -227,7 +209,7 @@ class Business(DocumentObject):
     def get_db_repr(business: Business, get_long_names: bool = False):
         res = {value: getattr(business, key) for key, value in Business.LONG_TO_SHORT.items()}
 
-        res["loc"] = list(map(lambda loc: Location.get_db_repr(loc), res.get("loc", [])))
+        res["loc"] = Location.get_db_repr(res.get('loc')) if res.get('loc', None) is not None else None
         res["it"] = res.get("it", [])
         res["cat"] = list(map(lambda category: category_module.Category.get_db_repr(category), res.get("cat", [])))
         res["cntc"] = contact_module.Contact.get_db_repr(res["cntc"])
@@ -244,7 +226,7 @@ class Business(DocumentObject):
 
         rating = sum(map(lambda item: item.calculate_rating(), args.get("items", [])))
         args["rating"] = rating
-        args["locations"] = list(map(lambda loc_doc: Location.document_repr_to_object(loc_doc), args.get("locations", [])))
+        args["location"] = Location.document_repr_to_object(args.get('location')) if args.get('location') is not None else None
         args["items"] = args.get("items", [])
         args["categories"] = \
             list(map(lambda category_doc: category_module.Category.document_repr_to_object(category_doc, business_id=args["_id"]),
