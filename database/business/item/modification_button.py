@@ -132,9 +132,10 @@ class ModificationButton(DocumentObject):
         res["dt"] = data_type.value
 
         if data_type == ModificationButtonDataType.Color:
-            res["dta"] = list(map(lambda color_bytes: Color.get_db_repr(color_bytes), res.get("data", [])))
+            print("AHFAS", res.get("dta"))
+            res["dta"] = list(map(lambda color_hex: int(color_hex.hexColor), res.get("dta", [])))
         elif data_type == ModificationButtonDataType.Image:
-            res["dta"] = list(map(lambda image: image.image_id, res.get("data", [])))
+            res["dta"] = list(map(lambda image: image.image_id, res.get("dta", [])))
 
         res["sd"] = res["sd"].value
 
@@ -151,7 +152,7 @@ class ModificationButton(DocumentObject):
         data_type = args["data_type"]
 
         if data_type == ModificationButtonDataType.Color:
-            args["data"] = list(map(lambda color_bytes: Color.document_repr_to_object(color_bytes), args.get("data", [])))
+            args["data"] = list(map(lambda color_hex: Color.document_repr_to_object(color_hex), args.get("data", [])))
         elif data_type == ModificationButtonDataType.Image:
             args["data"] = list(map(lambda image_id: Image(image_id), args.get("data", [])))
 
