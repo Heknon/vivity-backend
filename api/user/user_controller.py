@@ -36,11 +36,15 @@ class UserData:
             "options": user.options,
             "addresses": user.shipping_addresses,
             "liked_items": user.liked_items,
+            "profile_picture": str(user.profile_picture),
             "cart": user.cart,
         }
 
         if type(user) is BusinessUser:
             result["business_id"] = str(user.business_id)
+
+        if user.is_system_admin:
+            result["is_system_admin"] = True
 
         if get_options is None and order_ids is None and get_address is None and get_liked_items is None:
             result["order_history"] = user.get_order_history()

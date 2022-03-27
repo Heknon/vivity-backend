@@ -132,7 +132,6 @@ class ModificationButton(DocumentObject):
         res["dt"] = data_type.value
 
         if data_type == ModificationButtonDataType.Color:
-            print("AHFAS", res.get("dta"))
             res["dta"] = list(map(lambda color_hex: int(color_hex.hexColor), res.get("dta", [])))
         elif data_type == ModificationButtonDataType.Image:
             res["dta"] = list(map(lambda image: image.image_id, res.get("dta", [])))

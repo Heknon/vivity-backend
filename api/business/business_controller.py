@@ -31,36 +31,8 @@ class BusinessData:
             response.status = HttpStatus.NOT_FOUND
             return f"Business with id {business_id} does not exist."
 
-        if get_all_categories is None and get_all_items is None and contact is None and location is None and rating is None:
-            result = dict()
-
-            result["name"] = business.name
-            result["locations"] = business.location
-            result["items"] = business.items
-            result["categories"] = business.categories if not include_category_items else business.get_categories_with_items()
-            result["contact"] = business.contact
-            return result
-
-        result = dict()
-
-        business: Business = Business.get_business_by_id(business_id)
-        if get_all_categories:
-            if include_category_items:
-                result["categories"] = business.get_categories_with_items()
-            else:
-                result["categories"] = business.categories
-
-        if get_all_items:
-            result["items"] = business.items
-
-        if contact:
-            result["contact"] = business.contact
-
-        if location:
-            result["locations"] = business.location
-
-        if rating:
-            result["rating"] = business.rating
+        result = business.__getstate__()
+        result["categories"] = business.categories if not include_category_items else business.get_categories_with_items()
 
         return result
 
@@ -157,11 +129,11 @@ class BusinessData:
             return "Missing query parameters! Must include 'email', 'name', 'phone', 'longitude', 'latitude', 'business_national_number'."
 
         if len(business_owner_id) < 10:
-            return "Must pass the ID of the business owner."
+            return {'error': "Must pass the ID of the business owner."}
 
         user: Union[User, BusinessUser] = user
         if hasattr(user, "business_id"):
-            return "You already own a business!"
+            return {'error': "You already own a business!"}
 
         business: Business = Business.create_business(
             name,

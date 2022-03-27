@@ -32,6 +32,7 @@ class User(DocumentObject):
         "shipping_addresses": "sa",
         "liked_items": "lk",
         "profile_picture": "pfp",
+        "is_system_admin": "isa",
         "cart": "crt"
     }
 
@@ -48,7 +49,8 @@ class User(DocumentObject):
             options: user_options.UserOptions,
             shipping_addresses: List[shipping_address.ShippingAddress],
             liked_items: liked_items_module.LikedItems,
-            cart: cart_module.Cart
+            cart: cart_module.Cart,
+            is_system_admin: bool,
     ):
         self._id = _id
         self.email = email
@@ -60,6 +62,7 @@ class User(DocumentObject):
         self.shipping_addresses = shipping_addresses
         self.liked_items = liked_items
         self.cart = cart
+        self.is_system_admin = is_system_admin
         self.order_history: order_history_module.OrderHistory = None
 
         self.updatable_fields = {"email", "phone", "password", "profile_picture"}
@@ -171,6 +174,9 @@ class User(DocumentObject):
         args["cart"] = \
             cart_module.Cart.document_repr_to_object(doc["crt"], _id=doc["_id"]) if doc.get("crt", None) is not None else cart_module.Cart(args["_id"], [])
 
+        if args["is_system_admin"] is None:
+            args["is_system_admin"] = False
+
         return cls(**args)
 
     @staticmethod
@@ -275,6 +281,7 @@ class User(DocumentObject):
     def __getstate__(self):
         res = User.get_db_repr(self, True)
         del res['password']
+        del res['is_system_admin']
         return res
 
     def __setstate__(self, state):
