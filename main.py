@@ -1,10 +1,8 @@
 import logging
 
 import api  # must import to register package and execute its code.
-from database import ModificationButtonDataType
 
 logger = logging.getLogger(__name__)
-
 
 def main():
     api.app.start()

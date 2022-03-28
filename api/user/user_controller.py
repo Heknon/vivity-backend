@@ -1,13 +1,13 @@
-import json
 from collections import Iterable
+from pathlib import Path
 from typing import Union
 
-import jsonpickle
-from web_framework_v2 import RequestBody, QueryParameter
+from bson import ObjectId
+from web_framework_v2 import RequestBody, QueryParameter, ContentType, HttpResponse, HttpStatus
 
 from api import auth_fail
 from body import UserSettings, PaymentData, DictNoNone
-from database import User, BusinessUser, UserOptions
+from database import User, BusinessUser, Image
 from security import BlacklistJwtTokenAuth
 from .. import app
 
@@ -16,6 +16,7 @@ class UserData:
     """
     handles user data
     """
+
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.get("/user")
@@ -28,6 +29,7 @@ class UserData:
             get_cart: QueryParameter("liked_items", bool),
     ):
         user: Union[User, BusinessUser] = user
+        print(user.profile_picture)
         result = {
             "_id": str(user.id),
             "email": user.email,
@@ -36,7 +38,7 @@ class UserData:
             "options": user.options,
             "addresses": user.shipping_addresses,
             "liked_items": user.liked_items,
-            "profile_picture": str(user.profile_picture),
+            "profile_picture": None if len(str(user.profile_picture)) == 0 else str(user.profile_picture),
             "cart": user.cart,
         }
 
@@ -104,9 +106,83 @@ class UserData:
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
+    @app.post("/user/profile_picture", content_type=ContentType.text)
+    def update_profile_picture(
+            user: BlacklistJwtTokenAuth,
+            pfp_data: RequestBody(raw_format=True)
+    ):
+        user: User = user
+        pfp = None if pfp_data is None or len(pfp_data) == 0 else pfp_data
+        if user.profile_picture is not None and user.profile_picture.image_id is not None:
+            user.profile_picture.delete_image("profiles/")
+
+        image = Image.upload(pfp, folder_name="profiles/") if pfp is not None else None
+        user = user.update_profile_picture(image)
+
+        return {
+            "image_id": user.profile_picture
+        }
+
+    @staticmethod
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
+    @app.get("/user/profile_picture", content_type=ContentType.jpg)
+    def get_profile_picture(
+            user: BlacklistJwtTokenAuth
+    ):
+        user: User = user
+        result = user.profile_picture.get_image("profiles/") if user.profile_picture.image_id is not None else None
+        return result
+
+    @staticmethod
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
+    @app.post("/user/favorite")
+    def add_to_favorites(
+            user: BlacklistJwtTokenAuth,
+            res: HttpResponse,
+            item_id: QueryParameter("item_id", str)
+    ):
+        user: User = user
+        if not isUserId(item_id):
+            res.status = HttpStatus.BAD_REQUEST
+            return {
+                "error": "query parameter item_id must be a valid string id"
+            }
+
+        return user.liked_items.add_liked_items(ObjectId(item_id)).liked_items
+
+    @staticmethod
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
+    @app.delete("/user/favorite")
+    def remove_from_favorites(
+            user: BlacklistJwtTokenAuth,
+            res: HttpResponse,
+            item_id: QueryParameter("item_id", str)
+    ):
+        user: User = user
+        if not isUserId(item_id):
+            res.status = HttpStatus.BAD_REQUEST
+            return {
+                "error": "query parameter item_id must be a valid string id"
+            }
+
+        return user.liked_items.remove_liked_item(ObjectId(item_id)).liked_items
+
+    @staticmethod
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.post("/user/payment")
     def user_payment(
             token_data: BlacklistJwtTokenAuth,
             payment_data: RequestBody(PaymentData)
     ):
         pass
+
+
+def isUserId(s: str) -> bool:
+    if not isinstance(s, str):
+        return False
+
+    try:
+        ObjectId(s)
+        return True
+    except:
+        return False

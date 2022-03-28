@@ -19,8 +19,11 @@ def get_items(
 @BlacklistJwtTokenAuth()
 @app.get("/business/item")
 def get_items(
-        item_ids: RequestBody()
+        item_ids: QueryParameter("item_ids", list)
 ):
+    if not isinstance(item_ids, list):
+        item_ids = [item_ids]
+
     return Item.get_items(*list(map(lambda item_id: ObjectId(item_id), item_ids)))
 
 

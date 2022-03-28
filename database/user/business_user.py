@@ -7,9 +7,11 @@ from bson import ObjectId
 
 import database.user.liked_items as liked_items_module
 import database.user.shipping_address as shipping_address
-import database.user.user_options as user_options
-from database import users_collection, Image
 import database.user.user as user_module
+import database.user.user_options as user_options
+import database.user.cart as cart_module
+from database import users_collection, Image
+
 
 
 class BusinessUser(user_module.User):
@@ -23,7 +25,9 @@ class BusinessUser(user_module.User):
         "shipping_addresses": "sa",
         "liked_items": "lk",
         "business_id": "bid",
-        "profile_picture": "pfp"
+        "profile_picture": "pfp",
+        "is_system_admin": "isa",
+        "cart": "crt"
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -39,9 +43,11 @@ class BusinessUser(user_module.User):
             options: user_options.UserOptions,
             shipping_addresses: List[shipping_address.ShippingAddress],
             liked_items: liked_items_module.LikedItems,
-            business_id: ObjectId
+            business_id: ObjectId,
+            cart: cart_module.Cart,
+            is_system_admin: bool,
     ):
-        super().__init__(_id, email, name, phone, profile_picture, password, options, shipping_addresses, liked_items)
+        super().__init__(_id, email, name, phone, profile_picture, password, options, shipping_addresses, liked_items, cart, is_system_admin)
         self.business_id = business_id
 
     def __repr__(self):
@@ -73,17 +79,5 @@ class BusinessUser(user_module.User):
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs) -> BusinessUser:
-        args = {key: doc[value] for key, value in BusinessUser.LONG_TO_SHORT.items()}
-
-        args["profile_picture"] = Image(doc.get("pfp", None))
-        args["options"] = user_options.UserOptions.document_repr_to_object(doc["op"], _id=doc["_id"]) if doc.get("op", None) is not None else None
-        args["shipping_addresses"] = list(
-            map(
-                lambda i, sa: shipping_address.ShippingAddress.document_repr_to_object(sa, _id=doc["_id"], address_index=i),
-                enumerate(doc.get("sa", []))
-            )
-        )
-        args["liked_items"] = \
-            liked_items_module.LikedItems.document_repr_to_object(doc["lk"], _id=doc["_id"]) if doc.get("lk", None) is not None else None
-
-        return BusinessUser(**args)
+        import database.user.user as user
+        return user.User.document_repr_to_object(doc)

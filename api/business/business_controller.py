@@ -1,3 +1,4 @@
+import json
 from typing import Union
 
 from bson import ObjectId
@@ -14,16 +15,21 @@ class BusinessData:
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.get("/business/{business_id}")
     def get_business_data(
+            userUncast: BlacklistJwtTokenAuth,
             business_id: PathVariable("business_id"),
             response: HttpResponse,
-            get_all_categories: QueryParameter("categories", bool),
-            get_all_items: QueryParameter("items", bool),
             include_category_items: QueryParameter("include_category_items", bool),
-            contact: QueryParameter("contact", bool),
-            location: QueryParameter("locations", bool),
-            rating: QueryParameter("rating", bool),
     ):
         # TODO: Find where errors are caught and add a custom handler there.
+        user: User = userUncast
+        if business_id is None and isinstance(user, BusinessUser):
+            business_id = user.business_id
+        if business_id is None:
+            response.status = HttpStatus.BAD_REQUEST
+            return {
+                "error": "Must past a business id as query parameter - ?business_id=..."
+            }
+
         business_id = ObjectId(business_id)
         business = Business.get_business_by_id(business_id)
 
@@ -35,6 +41,16 @@ class BusinessData:
         result["categories"] = business.categories if not include_category_items else business.get_categories_with_items()
 
         return result
+
+    @staticmethod
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
+    @app.get("/business")
+    def get_my_business_data(
+            userUncast: BlacklistJwtTokenAuth,
+            response: HttpResponse,
+            include_category_items: QueryParameter("include_category_items", bool),
+    ):
+        return BusinessData.get_business_data(userUncast, None, response, include_category_items)
 
     @staticmethod
     @BusinessJwtTokenAuth(on_fail=auth_fail)
@@ -115,6 +131,7 @@ class BusinessData:
     def request_business_creation(
             user: BlacklistJwtTokenAuth,
             request: HttpRequest,
+            response: HttpResponse,
             business_owner_id: RequestBody(raw_format=True),
             business_national_number: QueryParameter("business_national_number"),
             name: QueryParameter("name"),
@@ -126,13 +143,16 @@ class BusinessData:
     ):
         # TODO: Add actual verification system for business creation.
         if name is None or email is None or phone is None or longitude is None or latitude is None or business_national_number is None:
+            response.status = HttpStatus.BAD_REQUEST
             return "Missing query parameters! Must include 'email', 'name', 'phone', 'longitude', 'latitude', 'business_national_number'."
 
         if len(business_owner_id) < 10:
+            response.status = HttpStatus.BAD_REQUEST
             return {'error': "Must pass the ID of the business owner."}
 
         user: Union[User, BusinessUser] = user
         if hasattr(user, "business_id"):
+            response.status = HttpStatus.BAD_REQUEST
             return {'error': "You already own a business!"}
 
         business: Business = Business.create_business(
@@ -148,7 +168,7 @@ class BusinessData:
         newToken = user.build_token(encoded=True)
         blacklist.add_to_blacklist(request.headers["authorization"][8:])
         return {
-            "new_user_token": newToken,
+            "token": newToken,
             "business": business
         }
 

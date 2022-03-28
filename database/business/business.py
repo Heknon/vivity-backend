@@ -166,7 +166,7 @@ class Business(DocumentObject):
 
     ) -> Business:
         _id = ObjectId()
-        image_id: Image = Image.upload(image_id_card)
+        image_id: Image = Image.upload(image_id_card, folder_name="business_ids/")
 
         return Business.document_repr_to_object(businesses_collection.find_one_and_replace(
             {"_id": _id},
@@ -209,11 +209,11 @@ class Business(DocumentObject):
     def get_db_repr(business: Business, get_long_names: bool = False):
         res = {value: getattr(business, key) for key, value in Business.LONG_TO_SHORT.items()}
 
-        res["loc"] = Location.get_db_repr(res.get('loc')) if res.get('loc', None) is not None else None
+        res["loc"] = Location.get_db_repr(res.get('loc'), get_long_names) if res.get('loc', None) is not None else None
         res["it"] = res.get("it", [])
-        res["cat"] = list(map(lambda category: category_module.Category.get_db_repr(category), res.get("cat", [])))
-        res["cntc"] = contact_module.Contact.get_db_repr(res["cntc"])
-        res["oic"] = res["oic"].image_id
+        res["cat"] = list(map(lambda category: category_module.Category.get_db_repr(category, get_long_names), res.get("cat", [])))
+        res["cntc"] = contact_module.Contact.get_db_repr(res["cntc"], get_long_names)
+        res["oic"] = res["oic"].__getstate__()
 
         if get_long_names:
             res = {business.lengthen_field_name(key): value for key, value in res.items()}
@@ -244,7 +244,9 @@ class Business(DocumentObject):
         return Business.SHORT_TO_LONG.get(field_name, None)
 
     def __getstate__(self):
-        return Business.get_db_repr(self, True)
+        res = Business.get_db_repr(self, True)
+        res["_id"] = str(self._id)
+        return res
 
     def __setstate__(self, state):
         self.__dict__.update(state)

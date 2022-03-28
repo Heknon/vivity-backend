@@ -25,4 +25,5 @@ from . import user
 from . import business
 from . import auth_controller
 from . import feed_controller
+from . import assets_controller
 

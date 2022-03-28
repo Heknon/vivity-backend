@@ -105,6 +105,15 @@ class User(DocumentObject):
             )
         )
 
+    def update_profile_picture(self, image: Image):
+        return User.document_repr_to_object(
+            users_collection.find_one_and_update(
+                {"_id": self._id},
+                {"$set": {f"pfp": image.image_id if image is not None else None}},
+                return_document=ReturnDocument.AFTER
+            )
+        )
+
     def get_order_history(self) -> order_history_module.OrderHistory | None:
         order_hist = order_history_module.OrderHistory.get_by_id(self._id)
         if self.order_history is not None:
@@ -174,7 +183,7 @@ class User(DocumentObject):
         args["cart"] = \
             cart_module.Cart.document_repr_to_object(doc["crt"], _id=doc["_id"]) if doc.get("crt", None) is not None else cart_module.Cart(args["_id"], [])
 
-        if args["is_system_admin"] is None:
+        if args.get("is_system_admin", None) is None:
             args["is_system_admin"] = False
 
         return cls(**args)
@@ -237,7 +246,6 @@ class User(DocumentObject):
         token = {
             "id": str(self._id),
             "name": self.name,
-            "profile_picture": self.profile_picture.image_id,
             "email": self.email,
             "phone": self.phone
         }
