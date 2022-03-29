@@ -23,8 +23,8 @@ class Image:
 
     @staticmethod
     def upload(image: bytes, key=str(uuid.uuid4()), folder_name: str = "") -> Image:
-        res = s3Bucket.upload(image, "png", key, folder_name)
-        if res.get("ResponseMetadata", {}).get('HTTPStatusCode', 401) != 200:
+        res = s3Bucket.upload(image, key, folder_name)
+        if res is not None:
             raise RuntimeError("Failed to upload image.\n" + str(res))
 
         return Image(key)

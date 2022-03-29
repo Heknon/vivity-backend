@@ -26,10 +26,14 @@ class S3Bucket(metaclass=Singleton):
     def get(self, key: str, folder_prefix: str = ""):
         return self.fetch(folder_prefix + key)
 
-    def upload(self, data: bytes, key: str = str(uuid.uuid4()), folder_prefix: str = ""):
+    def upload(self, data: bytes, key: str = None, folder_prefix: str = "", content_type: str = "image/png"):
+        if key is None:
+            key = str(uuid.uuid4())
+
         try:
-            self.client.put_object(Key=folder_prefix + key, Bucket=self.bucket_name, Body=data, ContentType="image/png")
+            self.client.put_object(Key=folder_prefix + key, Bucket=self.bucket_name, Body=data, ContentType=content_type)
         except Exception as e:
+            logging.exception(e)
             return e
 
     def delete(self, key: str, folder_prefix: str = ""):
