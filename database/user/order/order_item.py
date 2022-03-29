@@ -17,7 +17,7 @@ class OrderItem(DocumentObject):
         "subtitle": "sbt",
         "description": "dsc",
         "price": "p",
-        "modifiers_chosen": "mc",
+        "selected_modifiers": "sm",
         "amount": "amt"
     }
 
@@ -52,8 +52,8 @@ class OrderItem(DocumentObject):
             get_long_names: bool = False
     ) -> dict:
         res = {value: getattr(order_item, key) for key, value in OrderItem.LONG_TO_SHORT.items()}
-        res.setdefault("mc", [])
-        res["mc"] = list(map(lambda mc: SelectedModificationButton.get_db_repr(mc, get_long_names), res["mc"]))
+        res.setdefault("sm", [])
+        res["sm"] = list(map(lambda mc: SelectedModificationButton.get_db_repr(mc, get_long_names), res["sm"]))
         res["pi"] = res["pi"].image_id
 
         if get_long_names:
@@ -66,7 +66,7 @@ class OrderItem(DocumentObject):
         args = {key: doc[value] for key, value in OrderItem.LONG_TO_SHORT.items()}
         args.setdefault("modifiers_chosen", [])
         args["modifiers_chosen"] = \
-            list(map(lambda mod_button: SelectedModificationButton.document_repr_to_object(mod_button), args["modifiers_chosen"]))
+            list(map(lambda mod_button: SelectedModificationButton.document_repr_to_object(mod_button), args["selected_modifiers"]))
         args["preview_image"] = Image(doc[args["preview_image"]])
 
         return OrderItem(**args)
