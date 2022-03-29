@@ -53,5 +53,5 @@ class AddressController:
                 'error': f'Must be an index between 0 and {len(user.shipping_addresses) - 1}'
             }
 
-        user.remove_address(index)
-        res.status = HttpStatus.NO_CONTENT
+        return user.remove_address(index).shipping_addresses
+

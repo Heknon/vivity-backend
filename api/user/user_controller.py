@@ -1,5 +1,3 @@
-from collections import Iterable
-from pathlib import Path
 from typing import Union
 
 from bson import ObjectId
@@ -7,7 +5,7 @@ from web_framework_v2 import RequestBody, QueryParameter, ContentType, HttpRespo
 
 from api import auth_fail
 from body import UserSettings, PaymentData, DictNoNone
-from database import User, BusinessUser, Image
+from database import User, BusinessUser, Image, items_collection
 from security import BlacklistJwtTokenAuth
 from .. import app
 
@@ -101,8 +99,13 @@ class UserData:
             return {
                 "error": "query parameter item_id must be a valid string id"
             }
+        item_id = ObjectId(item_id)
+        if item_id in user.liked_items:
+            return user.liked_items
 
-        return user.liked_items.add_liked_items(ObjectId(item_id)).liked_items
+        liked_items = user.liked_items.add_liked_items(item_id).liked_items
+        items_collection.update_one({"_id": item_id}, {"$inc": {"mtc.lks": 1}})
+        return liked_items
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
@@ -119,7 +122,13 @@ class UserData:
                 "error": "query parameter item_id must be a valid string id"
             }
 
-        return user.liked_items.remove_liked_item(ObjectId(item_id)).liked_items
+        item_id = ObjectId(item_id)
+        if item_id not in user.liked_items:
+            return user.liked_items
+
+        liked_items = user.liked_items.remove_liked_item(item_id).liked_items
+        items_collection.update_one({"_id": item_id}, {"$inc": {"mtc.lks": -1}})
+        return liked_items
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)

@@ -16,9 +16,13 @@ class LikedItems(DocumentObject):
     ):
         self.user_id = user_id
         self._liked_items = liked_items
+        self._liked_items_set = set(liked_items)
 
     def __iter__(self):
         return self._liked_items
+
+    def __contains__(self, item_id: ObjectId):
+        return item_id in self._liked_items_set
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs):

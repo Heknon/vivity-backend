@@ -21,7 +21,7 @@ class BusinessMetrics(DocumentObject):
         self.business_id = business_id
         self.views = views
 
-    def add_like(self):
+    def add_view(self):
         return business_module.Business.document_repr_to_object(
             businesses_collection.find_one_and_update({"_id": self.business_id}, {"$inc", "mtc.vws"}, return_document=ReturnDocument.AFTER)
         )

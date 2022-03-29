@@ -44,7 +44,7 @@ class ItemMetrics(DocumentObject):
 
     def remove_like(self):
         return item_module.Item.document_repr_to_object(
-            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc", "mtc.lks"}, return_document=ReturnDocument.AFTER)
+            items_collection.find_one_and_update({"_id": self.item_id}, {"$dec", "mtc.lks"}, return_document=ReturnDocument.AFTER)
         )
 
     @staticmethod

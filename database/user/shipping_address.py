@@ -11,7 +11,6 @@ from database import DocumentObject, users_collection
 class ShippingAddress(DocumentObject):
     LONG_TO_SHORT = {
         "phone": "ph",
-        "email": "ml",
         "name": "nm",
         "zip_code": "zp",
         "street": "st",
@@ -84,7 +83,7 @@ class ShippingAddress(DocumentObject):
     @staticmethod
     def document_repr_to_object(doc, **kwargs):
         return ShippingAddress(
-            user_id=kwargs["_id"],
+            user_id=kwargs["_id"] if "_id" in kwargs else None,
             address_id=kwargs["address_index"],
             phone=doc['ph'],
             zip_code=doc['zp'],
