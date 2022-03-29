@@ -22,47 +22,15 @@ class UserData:
     @app.get("/user")
     def get_user_data(
             user: BlacklistJwtTokenAuth,
-            get_options: QueryParameter("options", bool),
-            order_ids: QueryParameter("orders", list),
-            get_address: QueryParameter("addresses", bool),
-            get_liked_items: QueryParameter("liked_items", bool),
     ):
         user: Union[User, BusinessUser] = user
-        result = {
-            "_id": str(user.id),
-            "email": user.email,
-            "name": user.name,
-            "phone": user.phone,
-            "options": user.options,
-            "addresses": user.shipping_addresses,
-            "liked_items": user.liked_items,
-            "profile_picture": None if len(str(user.profile_picture)) == 0 else str(user.profile_picture),
-            "cart": user.cart,
-        }
+        result = user.__getstate__()
 
         if type(user) is BusinessUser:
             result["business_id"] = str(user.business_id)
 
         if user.is_system_admin:
             result["is_system_admin"] = True
-
-        if get_options is None and order_ids is None and get_address is None and get_liked_items is None:
-            result["order_history"] = user.get_order_history()
-            return result
-
-        if order_ids == "all":
-            result["order_history"] = user.get_order_history()
-        elif order_ids is not None:
-            order_history = user.get_order_history()
-            ids = [order_ids] if not isinstance(order_ids, Iterable) else order_ids
-            result["orders"] = []
-            orders_length = len(order_history.orders) if order_history is not None else 0
-
-            for index in ids:
-                if int(index) >= orders_length or index < 0:
-                    continue
-
-                result["orders"].append(order_history.orders[index])
 
         return result
 

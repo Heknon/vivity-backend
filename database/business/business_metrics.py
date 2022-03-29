@@ -1,6 +1,9 @@
 from bson import ObjectId
+from pymongo import ReturnDocument
 
-from database import DocumentObject
+import database.business.business as business_module
+
+from database import DocumentObject, businesses_collection
 
 
 class BusinessMetrics(DocumentObject):
@@ -17,6 +20,11 @@ class BusinessMetrics(DocumentObject):
     ):
         self.business_id = business_id
         self.views = views
+
+    def add_like(self):
+        return business_module.Business.document_repr_to_object(
+            businesses_collection.find_one_and_update({"_id": self.business_id}, {"$inc", "mtc.vws"}, return_document=ReturnDocument.AFTER)
+        )
 
     @staticmethod
     def get_db_repr(item_metrics, get_long_names: bool = False):

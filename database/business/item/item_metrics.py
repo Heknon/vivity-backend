@@ -1,6 +1,9 @@
 from bson import ObjectId
+from pymongo import ReturnDocument
 
-from database import DocumentObject
+import database.business.item.item as item_module
+
+from database import DocumentObject, items_collection
 
 
 class ItemMetrics(DocumentObject):
@@ -23,6 +26,26 @@ class ItemMetrics(DocumentObject):
         self.views = views
         self.orders = orders
         self.likes = likes
+
+    def add_view(self):
+        return item_module.Item.document_repr_to_object(
+            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc", "mtc.vws"}, return_document=ReturnDocument.AFTER)
+        )
+
+    def add_order(self):
+        return item_module.Item.document_repr_to_object(
+            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc", "mtc.ods"}, return_document=ReturnDocument.AFTER)
+        )
+
+    def add_like(self):
+        return item_module.Item.document_repr_to_object(
+            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc", "mtc.lks"}, return_document=ReturnDocument.AFTER)
+        )
+
+    def remove_like(self):
+        return item_module.Item.document_repr_to_object(
+            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc", "mtc.lks"}, return_document=ReturnDocument.AFTER)
+        )
 
     @staticmethod
     def get_db_repr(item_metrics, get_long_names: bool = False):

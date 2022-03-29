@@ -116,14 +116,6 @@ class User(DocumentObject):
             )
         )
 
-    def get_order_history(self) -> order_history_module.OrderHistory | None:
-        order_hist = order_history_module.OrderHistory.get_by_id(self._id)
-        if self.order_history is not None:
-            return self.order_history
-
-        self.order_history = order_hist
-        return order_hist
-
     @staticmethod
     def promote_to_business_user(_id: ObjectId, business_id: ObjectId):
         import database.user.business_user as business_user
