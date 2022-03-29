@@ -8,6 +8,7 @@ from pymongo import ReturnDocument
 
 import database.business.item.item_store_format as isf_module
 import database.business.item.review as review_module
+import database.business.item.item_metrics as metrics_mod
 from database import Image, DocumentObject, items_collection, Location
 
 
@@ -25,7 +26,8 @@ class Item(DocumentObject):
         "category": "cat",
         "tags": "tg",
         "stock": "stk",
-        "location": "loc"
+        "location": "loc",
+        "metrics": "mtc",
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -44,6 +46,7 @@ class Item(DocumentObject):
             tags: List[str],
             stock: int,
             location: Location,
+            metrics: metrics_mod.ItemMetrics,
             _id: ObjectId = ObjectId(),
     ):
         self.business_id = business_id
@@ -59,6 +62,7 @@ class Item(DocumentObject):
         self.tags = tags
         self.stock = stock
         self.location = location
+        self.metrics = metrics
         self.should_recalculate_rating = True
 
         self.updatable_fields = {
@@ -143,6 +147,13 @@ class Item(DocumentObject):
             return_document=ReturnDocument.AFTER
         ))
 
+    def add_view(self):
+        return Item.document_repr_to_object(items_collection.find_one_and_update(
+            {"_id": self._id},
+            {"$inc": "vws"},
+            return_document=ReturnDocument.AFTER
+        ))
+
     def update_fields(
             self,
             title: str,
@@ -200,7 +211,8 @@ class Item(DocumentObject):
 
         res["im"] = list(map(lambda image: image.image_id, res["im"]))
         res["rs"] = list(map(lambda review: review_module.Review.get_db_repr(review, get_long_names), res.get("rs", [])))
-        res['loc'] = Location.get_db_repr(res['loc'], True)
+        res['loc'] = Location.get_db_repr(res['loc'], get_long_names)
+        res["mtc"] = metrics_mod.ItemMetrics.get_db_repr(res['mtc'], get_long_names)
 
         if get_long_names:
             res["bid"] = str(res["bid"])
@@ -221,6 +233,9 @@ class Item(DocumentObject):
         args["reviews"] = list(map(lambda review_doc: review_module.Review.document_repr_to_object(review_doc), args["reviews"]))
         args["business_id"] = args["business_id"]
         args['location'] = Location.document_repr_to_object(args['location'])
+        args['metrics'] \
+            = metrics_mod.ItemMetrics.document_repr_to_object(args['metrics'], _id=doc["_id"]) if args.get("metrics", None) is not None \
+            else metrics_mod.ItemMetrics(doc["_id"], 0, 0, 0)
 
         return Item(**args)
 
@@ -252,7 +267,8 @@ class Item(DocumentObject):
             category: str,
             tags: List[str],
             stock: int,
-            location: Location
+            location: Location,
+            metrics: metrics_mod.ItemMetrics
     ) -> Item:
         _id = ObjectId()
 
@@ -278,6 +294,7 @@ class Item(DocumentObject):
                 stock=stock,
                 location=location,
                 _id=_id,
+                metrics=metrics
             )),
             upsert=True,
             return_document=ReturnDocument.AFTER

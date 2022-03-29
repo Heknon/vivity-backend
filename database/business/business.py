@@ -6,10 +6,12 @@ import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
+import database.business.business_metrics as metrics_mod
 import database.business.category as category_module
 import database.business.contact as contact_module
 import database.business.item.item as item_module
 from database import DocumentObject, businesses_collection, Location, Image
+
 
 # TODO: Add option to switch location of business- should switch all items as well.
 class Business(DocumentObject):
@@ -22,6 +24,7 @@ class Business(DocumentObject):
         "contact": "cntc",
         "owner_id_card": "oic",
         "national_business_id": "nbi",
+        "metrics": 'mtc'
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -37,6 +40,7 @@ class Business(DocumentObject):
             contact: contact_module.Contact,
             owner_id_card: Image,
             national_business_id: str,
+            metrics: metrics_mod.BusinessMetrics
     ):
         self._id = _id
         self.rating = rating
@@ -47,6 +51,7 @@ class Business(DocumentObject):
         self.contact = contact
         self.owner_id_card = owner_id_card
         self.national_business_id = national_business_id
+        self.metrics = metrics
 
         self.updatable_fields = {
             "name", "national_business_id", "owner_id_card", "contact", "location"
@@ -162,8 +167,8 @@ class Business(DocumentObject):
             email: str,
             phone: str,
             image_id_card: bytes,
-            national_id_business_id: str
-
+            national_id_business_id: str,
+            metrics: metrics_mod.BusinessMetrics
     ) -> Business:
         _id = ObjectId()
         image_id: Image = Image.upload(image_id_card, folder_name="business_ids/")
@@ -186,7 +191,8 @@ class Business(DocumentObject):
                     facebook=None
                 ),
                 owner_id_card=image_id,
-                national_business_id=national_id_business_id
+                national_business_id=national_id_business_id,
+                metrics=metrics
             )),
             upsert=True,
             return_document=ReturnDocument.AFTER
@@ -214,6 +220,7 @@ class Business(DocumentObject):
         res["cat"] = list(map(lambda category: category_module.Category.get_db_repr(category, get_long_names), res.get("cat", [])))
         res["cntc"] = contact_module.Contact.get_db_repr(res["cntc"], get_long_names)
         res["oic"] = res["oic"].__getstate__()
+        res["mtc"] = metrics_mod.BusinessMetrics.get_db_repr(res['mtc'], get_long_names)
 
         if get_long_names:
             res = {business.lengthen_field_name(key): value for key, value in res.items()}
@@ -231,8 +238,14 @@ class Business(DocumentObject):
         args["categories"] = \
             list(map(lambda category_doc: category_module.Category.document_repr_to_object(category_doc, business_id=args["_id"]),
                      args.get("categories", [])))
-        args["contact"] = contact_module.Contact.document_repr_to_object(args["contact"], business_id=args["_id"]) if args.get("contact",
-                                                                                                                               None) is not None else None
+
+        args["contact"] = contact_module.Contact.document_repr_to_object(args["contact"], business_id=args["_id"]) \
+            if args.get("contact", None) is not None else None
+
+        args["metrics"] \
+            = metrics_mod.BusinessMetrics.document_repr_to_object(args['metrics'], business_id=args["_id"]) if args.get('mtc', None) is not None \
+            else metrics_mod.BusinessMetrics(args["_id"], 0)
+
         args["owner_id_card"] = Image(args.get("owner_id_card", None))
 
         return Business(**args)
