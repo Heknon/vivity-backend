@@ -33,7 +33,8 @@ class User(DocumentObject):
         "liked_items": "lk",
         "profile_picture": "pfp",
         "is_system_admin": "isa",
-        "cart": "crt"
+        "cart": "crt",
+        "order_history": "odh",
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -51,6 +52,7 @@ class User(DocumentObject):
             liked_items: liked_items_module.LikedItems,
             cart: cart_module.Cart,
             is_system_admin: bool,
+            order_history: order_history_module.OrderHistory,
     ):
         self._id = _id
         self.email = email
@@ -63,7 +65,7 @@ class User(DocumentObject):
         self.liked_items = liked_items
         self.cart = cart
         self.is_system_admin = is_system_admin
-        self.order_history: order_history_module.OrderHistory = None
+        self.order_history: order_history_module.OrderHistory = order_history
 
         self.updatable_fields = {"email", "phone", "password", "profile_picture"}
 
@@ -183,6 +185,9 @@ class User(DocumentObject):
         args["cart"] = \
             cart_module.Cart.document_repr_to_object(doc["crt"], _id=doc["_id"]) if doc.get("crt", None) is not None else cart_module.Cart(args["_id"], [])
 
+        args["order_history"] \
+            = order_history_module.OrderHistory.document_repr_to_object(doc["odh"], _id=doc["_id"]) if doc.get("odh", None) is not None else order_history_module.OrderHistory(args["_id"], [])
+
         if args.get("is_system_admin", None) is None:
             args["is_system_admin"] = False
 
@@ -197,6 +202,7 @@ class User(DocumentObject):
         res["sa"] = list(map(lambda address: shipping_address.ShippingAddress.get_db_repr(address, get_long_names), user.shipping_addresses))
         res["lk"] = liked_items_module.LikedItems.get_db_repr(user.liked_items, get_long_names)
         res["crt"] = cart_module.Cart.get_db_repr(user.cart, get_long_names) if user.cart is not None else []
+        res["odh"] = order_history_module.OrderHistory.get_db_repr(user.order_history, get_long_names) if user.order_history is not None else []
 
         if get_long_names:
             res['_id'] = str(res['_id'])
@@ -239,7 +245,8 @@ class User(DocumentObject):
             "op": user_options.UserOptions.default_object_repr(),
             "sa": shipping_address.ShippingAddress.default_object_repr(),
             "lk": liked_items_module.LikedItems.default_object_repr(),
-            "crt": []
+            "crt": [],
+            "odh": []
         }
 
     def build_token(self, encoded=False):

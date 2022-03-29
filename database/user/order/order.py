@@ -4,8 +4,10 @@ import datetime
 from typing import List
 
 import jsonpickle
+from bson import ObjectId
+from pymongo import ReturnDocument
 
-from database import DocumentObject
+from database import DocumentObject, orders_collection
 from database.user.order import OrderItem
 
 
@@ -19,14 +21,28 @@ class Order(DocumentObject):
 
     def __init__(
             self,
+            _id: ObjectId,
             order_date: datetime.datetime,
             items: List[OrderItem],
     ):
+        self._id = _id
         self.order_date = order_date
         self.items = items
 
-    def __repr__(self):
-        return jsonpickle.encode(Order.get_db_repr(self, True), unpicklable=False)
+    @staticmethod
+    def save(order: Order):
+        order_save = Order(
+            _id=ObjectId(),
+            order_date=order.order_date,
+            items=order.items
+        )
+        saved = Order.get_db_repr(order_save)
+        Order.document_repr_to_object(orders_collection.find_one_and_update(
+            {"_id": order_save._id},
+            saved,
+            upsert=True,
+            return_document=ReturnDocument.AFTER
+        ))
 
     @staticmethod
     def get_db_repr(order: Order, get_long_names: bool = False):
@@ -46,6 +62,16 @@ class Order(DocumentObject):
             order_date=datetime.datetime.fromtimestamp(doc["ots"]),
             items=list(map(lambda order_item: OrderItem.document_repr_to_object(order_item), doc.get("it", [])))
         )
+
+    def __repr__(self):
+        return jsonpickle.encode(Order.get_db_repr(self, True), unpicklable=False)
+
+    def __getstate__(self):
+        res = Order.get_db_repr(self, True)
+        return res
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
 
     def shorten_field_name(self, field_name):
         return Order.LONG_TO_SHORT.get(field_name, None)

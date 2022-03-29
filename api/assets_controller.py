@@ -6,6 +6,7 @@ from concurrent import futures
 
 import boto3
 from boto3_type_annotations.s3 import Client
+from botocore.exceptions import ClientError
 from botocore.response import StreamingBody
 from s3_bucket.exceptions import BucketAccessDenied
 from web_framework_v2 import QueryParameter
@@ -51,16 +52,21 @@ class AssetsController:
             image_ids: QueryParameter("image_ids"),
             folder_name: QueryParameter("folder_name") = ""
     ):
+        if image_ids is None:
+            return {}
+
         if not isinstance(image_ids, list):
             image_ids = [image_ids]
 
         images = dict()
 
         for image_id in image_ids:
+            if image_id is None:
+                continue
+
             try:
                 images[image_id] = base64.b64encode(Image(folder_name + image_id).get_image()).decode('utf-8')
-            except BucketAccessDenied:
-                print("fds")
+            except ClientError:
                 continue
 
         if "" in images:

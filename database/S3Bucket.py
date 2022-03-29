@@ -33,22 +33,20 @@ class S3Bucket(metaclass=Singleton):
         try:
             self.client.put_object(Key=folder_prefix + key, Bucket=self.bucket_name, Body=data, ContentType=content_type)
         except Exception as e:
-            logging.exception(e)
-            return e
+            raise e
 
     def delete(self, key: str, folder_prefix: str = ""):
         try:
             self.client.delete_object(Bucket=self.bucket_name, Key=folder_prefix + key)
         except Exception as e:
-            return e
+            raise e
 
     def fetch(self, key):
         try:
             res: StreamingBody = self.client.get_object(Bucket=self.bucket_name, Key=key)["Body"]
             return res.read()
         except Exception as e:
-            logging.exception(e)
-            return e
+            raise e
 
     def fetch_all(self, keys):
         print('wat')

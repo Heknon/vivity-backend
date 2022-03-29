@@ -28,7 +28,6 @@ class UserData:
             get_liked_items: QueryParameter("liked_items", bool),
     ):
         user: Union[User, BusinessUser] = user
-        print(user.profile_picture)
         result = {
             "_id": str(user.id),
             "email": user.email,

@@ -10,8 +10,8 @@ import database.user.shipping_address as shipping_address
 import database.user.user as user_module
 import database.user.user_options as user_options
 import database.user.cart as cart_module
+import database.user.order.order_history as order_history_module
 from database import users_collection, Image
-
 
 
 class BusinessUser(user_module.User):
@@ -27,7 +27,8 @@ class BusinessUser(user_module.User):
         "business_id": "bid",
         "profile_picture": "pfp",
         "is_system_admin": "isa",
-        "cart": "crt"
+        "cart": "crt",
+        "order_history": "odh"
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -46,8 +47,21 @@ class BusinessUser(user_module.User):
             business_id: ObjectId,
             cart: cart_module.Cart,
             is_system_admin: bool,
+            order_history: order_history_module.OrderHistory
     ):
-        super().__init__(_id, email, name, phone, profile_picture, password, options, shipping_addresses, liked_items, cart, is_system_admin)
+        super().__init__(
+            _id,
+            email,
+            name,
+            phone,
+            profile_picture,
+            password,
+            options,
+            shipping_addresses,
+            liked_items, cart,
+            is_system_admin,
+            order_history
+        )
         self.business_id = business_id
 
     def __repr__(self):
@@ -65,19 +79,8 @@ class BusinessUser(user_module.User):
 
     @staticmethod
     def get_db_repr(user: BusinessUser, get_long_names: bool = False):
-        res = {value: getattr(user, key) for key, value in BusinessUser.LONG_TO_SHORT.items()}
-
-        res["pfp"] = res["pfp"].image_id
-        res["op"] = user_options.UserOptions.get_db_repr(user.options)
-        res["sa"] = list(map(lambda address: shipping_address.ShippingAddress.get_db_repr(address), user.shipping_addresses))
-        res["lk"] = liked_items_module.LikedItems.get_db_repr(user.liked_items)
-
-        if get_long_names:
-            res = {user.lengthen_field_name(key): value for key, value in res.items()}
-
-        return res
+        return user_module.User.get_db_repr(user)
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs) -> BusinessUser:
-        import database.user.user as user
-        return user.User.document_repr_to_object(doc)
+        return user_module.User.document_repr_to_object(doc)
