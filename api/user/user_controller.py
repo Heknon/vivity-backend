@@ -26,7 +26,6 @@ class UserData:
             order_ids: QueryParameter("orders", list),
             get_address: QueryParameter("addresses", bool),
             get_liked_items: QueryParameter("liked_items", bool),
-            get_cart: QueryParameter("liked_items", bool),
     ):
         user: Union[User, BusinessUser] = user
         print(user.profile_picture)
@@ -51,18 +50,6 @@ class UserData:
         if get_options is None and order_ids is None and get_address is None and get_liked_items is None:
             result["order_history"] = user.get_order_history()
             return result
-
-        if not get_options:
-            del result["options"]
-
-        if not get_address:
-            del result["addresses"]
-
-        if not get_liked_items:
-            del result["liked_items"]
-
-        if not get_cart:
-            del result["liked_items"]
 
         if order_ids == "all":
             result["order_history"] = user.get_order_history()
