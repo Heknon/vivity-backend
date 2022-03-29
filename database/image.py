@@ -16,7 +16,7 @@ class Image:
         return self.image_id
 
     def get_image(self, folder_name="") -> bytes:
-        return s3Bucket.get(folder_name + self.image_id)[0]
+        return s3Bucket.get(folder_name + self.image_id)
 
     def delete_image(self, folder_name=""):
         return s3Bucket.delete(folder_name + self.image_id)

@@ -1,15 +1,30 @@
 import base64
+import logging
+import os
+import time
+from concurrent import futures
 
+import boto3
+from boto3_type_annotations.s3 import Client
+from botocore.response import StreamingBody
 from s3_bucket.exceptions import BucketAccessDenied
 from web_framework_v2 import QueryParameter
 
 from api import app, auth_fail
-from database import Image
+from database import Image, s3Bucket
 from security import BlacklistJwtTokenAuth
 
 
 def image_error_handler(err, traceback, req, res, path_vars) -> object:
     return {"error": "Image not found", 'error_type': str(type(err))} if "Unable to access bucket" in str(err) else None
+
+
+aws_access_key = os.getenv("AWS_ACCESS_KEY")
+aws_secret_key = os.getenv("AWS_SECRET_KEY")
+bucket_name = os.getenv("AWS_BUCKET_NAME")
+
+
+
 
 
 class AssetsController:
@@ -39,12 +54,15 @@ class AssetsController:
         if not isinstance(image_ids, list):
             image_ids = [image_ids]
 
-        image_ids = set(image_ids)
         images = dict()
+
         for image_id in image_ids:
             try:
                 images[image_id] = base64.b64encode(Image(folder_name + image_id).get_image()).decode('utf-8')
             except BucketAccessDenied:
+                print("fds")
                 continue
 
+        if "" in images:
+            del images[""]
         return images
