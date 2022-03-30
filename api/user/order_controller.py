@@ -21,5 +21,7 @@ class OrderController:
             }
 
         user_orders = set(user.order_history.orders)
-        order_ids = list(filter(lambda x: x not in user_orders, map(ObjectId, order_ids)))
-        return list(map(lambda doc: Order.document_repr_to_object(doc), orders_collection.find({"_id": {"$in": order_ids}})))
+        order_ids = map(lambda x: ObjectId(x), order_ids)
+        order_ids = list(filter(lambda x: x in user_orders, order_ids))
+        order_docs = orders_collection.find({"_id": {"$in": order_ids}})
+        return list(map(lambda doc: Order.document_repr_to_object(doc), order_docs))

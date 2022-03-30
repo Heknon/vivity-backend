@@ -1,14 +1,15 @@
 from bson import ObjectId
+from pymongo import ReturnDocument
 from web_framework_v2 import RequestBody, PathVariable, QueryParameter, HttpResponse, HttpStatus
 
 from body import ItemCreation, ItemUpdate
 from body import Review
-from database import Item, ItemStoreFormat, Business, BusinessUser, User
+from database import Item, ItemStoreFormat, Business, BusinessUser, User, items_collection
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
-from .. import app
+from .. import app, auth_fail
 
 
-@BlacklistJwtTokenAuth()
+@BlacklistJwtTokenAuth(on_fail=auth_fail)
 @app.get("/business/{business_id}/item")
 def get_items(
         item_ids: QueryParameter("item_ids", list)
@@ -16,7 +17,7 @@ def get_items(
     return Item.get_items(item_ids)
 
 
-@BlacklistJwtTokenAuth()
+@BlacklistJwtTokenAuth(on_fail=auth_fail)
 @app.get("/business/item")
 def get_items(
         item_ids: QueryParameter("item_ids", list)
@@ -27,7 +28,7 @@ def get_items(
     return Item.get_items(*list(map(lambda item_id: ObjectId(item_id), item_ids)))
 
 
-@BusinessJwtTokenAuth()
+@BusinessJwtTokenAuth(on_fail=auth_fail)
 @app.post("/business/item")
 def create_item(
         token_data: BusinessJwtTokenAuth,
@@ -66,7 +67,46 @@ def create_item(
 """ SPECIFIC ITEM """
 
 
-@BusinessJwtTokenAuth()
+@BusinessJwtTokenAuth(on_fail=auth_fail)
+@app.post("/business/item/{item_id}/stock")
+def update_item_stock(
+        raw_user: BusinessJwtTokenAuth,
+        item_id: PathVariable("item_id"),
+        stock: QueryParameter("stock", int),
+        res: HttpResponse
+):
+    user: BusinessUser = raw_user
+    if stock is None or not isinstance(stock, int) or stock >= 10000:
+        res.status = HttpStatus.BAD_REQUEST
+        return {
+            "error": "Must pass query parameter 'stock' and it must be an integer below 10000"
+        }
+
+    _id = ObjectId(item_id)
+    item: Item = Item.get_item(_id)
+    if item is None:
+        res.status = HttpStatus.UNAUTHORIZED
+        return {
+            "error": f"Item with id {item_id} doesn't exist"
+        }
+
+    if user.business_id != item.business_id:
+        res.status = HttpStatus.UNAUTHORIZED
+        return {
+            "error": f"Item with id {item_id} doesn't exist"
+        }
+
+    item_doc = items_collection.find_one_and_update({"_id": _id}, {"$set": {Item.LONG_TO_SHORT["stock"]: stock}}, return_document=ReturnDocument.AFTER)
+    if item_doc is None:
+        res.status = HttpStatus.UNAUTHORIZED
+        return {
+            "error": f"Item with id {item_id} doesn't exist"
+        }
+
+    return Item.document_repr_to_object(item_doc)
+
+
+@BusinessJwtTokenAuth(on_fail=auth_fail)
 @app.patch("/business/item/{item_id}")
 def update_item(
         token_data: BusinessJwtTokenAuth,
@@ -104,7 +144,7 @@ def update_item(
     return item
 
 
-@BusinessJwtTokenAuth()
+@BusinessJwtTokenAuth(on_fail=auth_fail)
 @app.delete("/business/item/{item_id}")
 def delete_item(
         token_data: BusinessJwtTokenAuth,
@@ -122,7 +162,7 @@ def delete_item(
 """ITEM REVIEWS"""
 
 
-@BlacklistJwtTokenAuth()
+@BlacklistJwtTokenAuth(on_fail=auth_fail)
 @app.get("/business/{business_id}/item/{item_id}/review")
 def get_item_reviews(
         item_id: PathVariable("item_id")
@@ -130,7 +170,7 @@ def get_item_reviews(
     return Item.get_item(item_id).reviews
 
 
-@BlacklistJwtTokenAuth()
+@BlacklistJwtTokenAuth(on_fail=auth_fail)
 @app.post("/business/{business_id}/item/{item_id}/review")
 def add_item_review(
         token_data: BlacklistJwtTokenAuth,

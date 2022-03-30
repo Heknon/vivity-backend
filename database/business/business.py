@@ -24,7 +24,8 @@ class Business(DocumentObject):
         "contact": "cntc",
         "owner_id_card": "oic",
         "national_business_id": "nbi",
-        "metrics": 'mtc'
+        "metrics": 'mtc',
+        "orders": "ord"
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -32,10 +33,10 @@ class Business(DocumentObject):
     def __init__(
             self,
             _id: ObjectId,
-            rating: float,
             name: str,
             location: Location,
             items: List[ObjectId],
+            orders: List[ObjectId],
             categories: List[category_module.Category],
             contact: contact_module.Contact,
             owner_id_card: Image,
@@ -43,7 +44,6 @@ class Business(DocumentObject):
             metrics: metrics_mod.BusinessMetrics
     ):
         self._id = _id
-        self.rating = rating
         self.name = name
         self.location = location
         self.items = items
@@ -52,6 +52,7 @@ class Business(DocumentObject):
         self.owner_id_card = owner_id_card
         self.national_business_id = national_business_id
         self.metrics = metrics
+        self.orders = orders
 
         self.updatable_fields = {
             "name", "national_business_id", "owner_id_card", "contact", "location"
@@ -153,6 +154,28 @@ class Business(DocumentObject):
             )
         )
 
+    def add_order(self, order_id: ObjectId) -> Business:
+        return Business.document_repr_to_object(
+            businesses_collection.find_one_and_update(
+                {"_id": self._id},
+                {"$addToSet": {f"ord": order_id}},
+                return_document=ReturnDocument.AFTER
+            )
+        )
+
+    def remove_order(self, order_id: ObjectId) -> Business:
+        """
+        Removes order from business orders NOT from orders collection.
+        :param order_id: item object id
+        """
+        return Business.document_repr_to_object(
+            businesses_collection.find_one_and_update(
+                {"_id": self._id},
+                {"$pull": {f"ord": order_id}},
+                return_document=ReturnDocument.AFTER
+            )
+        )
+
     def get_items(self) -> List[item_module.Item]:
         return item_module.Item.get_items(*self.items)
 
@@ -177,7 +200,6 @@ class Business(DocumentObject):
             {"_id": _id},
             Business.get_db_repr(Business(
                 _id=_id,
-                rating=0,
                 name=name,
                 location=location,
                 items=[],
@@ -216,7 +238,7 @@ class Business(DocumentObject):
         res = {value: getattr(business, key) for key, value in Business.LONG_TO_SHORT.items()}
 
         res["loc"] = Location.get_db_repr(res.get('loc'), get_long_names) if res.get('loc', None) is not None else None
-        res["it"] = res.get("it", [])
+        res["it"] = list(map(str, res.get("it", []))) if get_long_names else res.get("it", [])
         res["cat"] = list(map(lambda category: category_module.Category.get_db_repr(category, get_long_names), res.get("cat", [])))
         res["cntc"] = contact_module.Contact.get_db_repr(res["cntc"], get_long_names)
         res["oic"] = res["oic"].__getstate__()
@@ -231,8 +253,6 @@ class Business(DocumentObject):
     def document_repr_to_object(doc, **kwargs):
         args = {key: doc[value] for key, value in Business.LONG_TO_SHORT.items()}
 
-        rating = sum(map(lambda item: item.calculate_rating(), args.get("items", [])))
-        args["rating"] = rating
         args["location"] = Location.document_repr_to_object(args.get('location')) if args.get('location') is not None else None
         args["items"] = args.get("items", [])
         args["categories"] = \

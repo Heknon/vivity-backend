@@ -3,6 +3,7 @@ import logging
 import os
 import signal
 import sys
+import time
 
 import api  # must import to register package and execute its code.
 
@@ -10,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    print(time.time())
     api.app.start()
 
 

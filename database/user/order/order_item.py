@@ -12,13 +12,10 @@ from database.business.item import SelectedModificationButton
 class OrderItem(DocumentObject):
     LONG_TO_SHORT = {
         "item_id": "iid",
-        "preview_image": "pi",
-        "title": "ttl",
-        "subtitle": "sbt",
-        "description": "dsc",
         "price": "p",
         "selected_modifiers": "sm",
-        "amount": "amt"
+        "amount": "amt",
+        "business_id": "bid"
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -26,22 +23,16 @@ class OrderItem(DocumentObject):
     def __init__(
             self,
             item_id: ObjectId,
-            preview_image: Image,
-            title: str,
-            subtitle: str,
-            description: str,
+            business_id: ObjectId,
             amount: int,
             price: float,
-            modifiers_chosen: List[SelectedModificationButton]
+            selected_modifiers: List[SelectedModificationButton]
     ):
         self.item_id = item_id
+        self.business_id = business_id
         self.amount = amount
         self.price = price
-        self.preview_image = preview_image
-        self.title = title
-        self.subtitle = subtitle
-        self.description = description
-        self.modifiers_chosen = modifiers_chosen
+        self.selected_modifiers = selected_modifiers
 
     def __repr__(self):
         return jsonpickle.encode(OrderItem.get_db_repr(self, True), unpicklable=False)
@@ -53,10 +44,11 @@ class OrderItem(DocumentObject):
     ) -> dict:
         res = {value: getattr(order_item, key) for key, value in OrderItem.LONG_TO_SHORT.items()}
         res.setdefault("sm", [])
-        res["sm"] = list(map(lambda mc: SelectedModificationButton.get_db_repr(mc, get_long_names), res["sm"]))
-        res["pi"] = res["pi"].image_id
+        res["sm"] = list(map(lambda sm: SelectedModificationButton.get_db_repr(sm, get_long_names), res["sm"]))
 
         if get_long_names:
+            res["bid"] = str(res["bid"])
+            res["iid"] = str(res["iid"])
             res = {order_item.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
@@ -64,10 +56,9 @@ class OrderItem(DocumentObject):
     @staticmethod
     def document_repr_to_object(doc, **kwargs):
         args = {key: doc[value] for key, value in OrderItem.LONG_TO_SHORT.items()}
-        args.setdefault("modifiers_chosen", [])
-        args["modifiers_chosen"] = \
+        args.setdefault("selected_modifiers", [])
+        args["selected_modifiers"] = \
             list(map(lambda mod_button: SelectedModificationButton.document_repr_to_object(mod_button), args["selected_modifiers"]))
-        args["preview_image"] = Image(doc[args["preview_image"]])
 
         return OrderItem(**args)
 

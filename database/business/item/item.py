@@ -305,6 +305,7 @@ class Item(DocumentObject):
             self.should_recalculate_rating = sum(map(lambda review: review.should_recalculate_rating, self.reviews)) / float(len(self.reviews))
         return self.should_recalculate_rating
 
+
     def shorten_field_name(self, field_name):
         return Item.LONG_TO_SHORT.get(field_name, None)
 

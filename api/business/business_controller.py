@@ -5,7 +5,7 @@ from bson import ObjectId
 from web_framework_v2 import QueryParameter, RequestBody, PathVariable, HttpRequest, HttpResponse, HttpStatus
 
 from body import BusinessUpdateData, AuthorizedRouteRequestBody, DictNoNone
-from database import Business, Location, User, BusinessUser, blacklist, Contact
+from database import Business, Location, User, BusinessUser, blacklist, Contact, Order
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
 from .. import app, auth_fail
 
@@ -41,6 +41,25 @@ class BusinessData:
         result["categories"] = business.categories if not include_category_items else business.get_categories_with_items()
 
         return result
+
+    @staticmethod
+    @BusinessJwtTokenAuth(on_fail=auth_fail)
+    @app.get("/business/orders")
+    def get_business_orders(
+            userUncast: BusinessJwtTokenAuth,
+            res: HttpResponse
+    ):
+        user: BusinessUser = userUncast
+
+        business: Business = Business.get_business_by_id(user.business_id)
+        if business is None:
+            res.status = HttpStatus.UNAUTHORIZED
+            return {
+                "error": "Whoops looks like your business no longer exists"
+            }
+
+        return Order.get_orders(business.orders)
+
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)

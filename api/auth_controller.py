@@ -9,7 +9,6 @@ from . import app
 
 def register_fail(req: HttpRequest, res: HttpResponse, data: AuthenticationResult):
     res.status = HttpStatus.UNAUTHORIZED
-    print(req.body)
     return json.dumps({
         "token": None,
         "auth_result": data.value,
