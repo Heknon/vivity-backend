@@ -7,9 +7,9 @@ import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
+import database.user.shipping_address as sa_module
 from database import DocumentObject, orders_collection
 from database.user.order import OrderItem
-import database.user.shipping_address as sa_module
 from database.user.order.order_status import OrderStatus
 
 
@@ -65,7 +65,7 @@ class Order(DocumentObject):
             cupon_discount=order.cupon_discount,
             total=order.total,
             items=order.items,
-            status = order.status
+            status=order.status
         )
         saved = Order.get_db_repr(order_save)
         Order.document_repr_to_object(orders_collection.find_one_and_update(

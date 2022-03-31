@@ -206,7 +206,6 @@ class Item(DocumentObject):
     def get_db_repr(item: Item, get_long_names: bool = False):
         res = {value: getattr(item, key) for key, value in Item.LONG_TO_SHORT.items()}
 
-        res["pi"] = res["pi"].image_id if res.get("pi", None) is not None else None
         res["isf"] = isf_module.ItemStoreFormat.get_db_repr(res["isf"], get_long_names)
 
         res["im"] = list(map(lambda image: image.image_id, res["im"]))

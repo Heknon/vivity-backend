@@ -4,7 +4,8 @@ from web_framework_v2 import RequestBody, PathVariable, QueryParameter, HttpResp
 
 from body import ItemCreation, ItemUpdate
 from body import Review
-from database import Item, ItemStoreFormat, Business, BusinessUser, User, items_collection
+from database import Item, ItemStoreFormat, Business, BusinessUser, User, items_collection, Location
+from database.business.item.item_metrics import ItemMetrics
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
 from .. import app, auth_fail
 
@@ -56,7 +57,14 @@ def create_item(
         brand=item_creation_data.brand,
         category=item_creation_data.category,
         tags=item_creation_data.tags,
-        stock=0
+        stock=0,
+        metrics=ItemMetrics(
+            item_id=None,
+            orders=0,
+            likes=0,
+            views=0
+        ),
+        location=business.location
     )
 
     business.add_item(result.id)
@@ -76,10 +84,10 @@ def update_item_stock(
         res: HttpResponse
 ):
     user: BusinessUser = raw_user
-    if stock is None or not isinstance(stock, int) or stock >= 10000:
+    if stock is None or not isinstance(stock, int) or stock >= 10000 or stock < 0:
         res.status = HttpStatus.BAD_REQUEST
         return {
-            "error": "Must pass query parameter 'stock' and it must be an integer below 10000"
+            "error": "Must pass query parameter 'stock' and it must be an integer below 10000 and above 0"
         }
 
     _id = ObjectId(item_id)

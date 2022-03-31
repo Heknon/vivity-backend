@@ -46,6 +46,7 @@ class S3Bucket(metaclass=Singleton):
             res: StreamingBody = self.client.get_object(Bucket=self.bucket_name, Key=key)["Body"]
             return res.read()
         except Exception as e:
+            print(f"error accessing {key}")
             raise e
 
     def fetch_all(self, keys):

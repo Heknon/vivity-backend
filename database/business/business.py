@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from typing import List
 
 import jsonpickle
@@ -10,7 +11,7 @@ import database.business.business_metrics as metrics_mod
 import database.business.category as category_module
 import database.business.contact as contact_module
 import database.business.item.item as item_module
-from database import DocumentObject, businesses_collection, Location, Image
+from database import DocumentObject, businesses_collection, Location, Image, unapproved_businesses_collection
 
 
 # TODO: Add option to switch location of business- should switch all items as well.
@@ -25,7 +26,9 @@ class Business(DocumentObject):
         "owner_id_card": "oic",
         "national_business_id": "nbi",
         "metrics": 'mtc',
-        "orders": "ord"
+        "orders": "ord",
+        "approved": "app",
+        "admin_note": "ant"
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -41,7 +44,9 @@ class Business(DocumentObject):
             contact: contact_module.Contact,
             owner_id_card: Image,
             national_business_id: str,
-            metrics: metrics_mod.BusinessMetrics
+            metrics: metrics_mod.BusinessMetrics,
+            approved: bool,
+            admin_note: str,
     ):
         self._id = _id
         self.name = name
@@ -53,6 +58,8 @@ class Business(DocumentObject):
         self.national_business_id = national_business_id
         self.metrics = metrics
         self.orders = orders
+        self.approved = approved
+        self.admin_note = admin_note
 
         self.updatable_fields = {
             "name", "national_business_id", "owner_id_card", "contact", "location"
@@ -184,6 +191,51 @@ class Business(DocumentObject):
         return item_module.Item.get_item(item_id)
 
     @staticmethod
+    def approve_business(business_id: ObjectId, note: str):
+        doc = unapproved_businesses_collection.find_one({"_id": business_id})
+        if doc is None:
+            doc = businesses_collection.find_one_and_update({"_id": business_id}, {"$set": {"ant": note, "app": True}},
+                                                            return_document=ReturnDocument.AFTER)
+            if doc is None:
+                return
+
+            return Business.document_repr_to_object(doc)
+
+        doc["ant"] = note
+        doc["app"] = True
+        businesses_collection.insert_one(doc)
+        unapproved_businesses_collection.delete_one({"_id": business_id})
+        return Business.document_repr_to_object(doc)
+
+    @staticmethod
+    def send_admin_note(business_id: ObjectId, note: str):
+        doc = unapproved_businesses_collection.find_one_and_update({"_id": business_id}, {"$set": {"ant": note}},
+                                                                   return_document=ReturnDocument.AFTER)
+        if doc is None:
+            doc = businesses_collection.find_one_and_update({"_id": business_id}, {"$set": {"ant": note}}, return_document=ReturnDocument.AFTER)
+            if doc is None:
+                return
+
+        return Business.document_repr_to_object(doc)
+
+    @staticmethod
+    def move_business_to_unapproved(business_id: ObjectId, note: str):
+        doc = businesses_collection.find_one({"_id": business_id})
+        if doc is None:
+            doc = unapproved_businesses_collection.find_one_and_update({"_id": business_id}, {"$set": {"ant": note, "app": False}},
+                                                                       return_document=ReturnDocument.AFTER)
+            if doc is None:
+                return
+
+            return Business.document_repr_to_object(doc)
+
+        doc["ant"] = note
+        doc['app'] = False
+        unapproved_businesses_collection.insert_one(doc)
+        businesses_collection.delete_one({"_id": business_id})
+        return Business.document_repr_to_object(doc)
+
+    @staticmethod
     def create_business(
             name: str,
             location: Location,
@@ -196,7 +248,7 @@ class Business(DocumentObject):
         _id = ObjectId()
         image_id: Image = Image.upload(image_id_card, folder_name="business_ids/")
 
-        return Business.document_repr_to_object(businesses_collection.find_one_and_replace(
+        return Business.document_repr_to_object(unapproved_businesses_collection.find_one_and_replace(
             {"_id": _id},
             Business.get_db_repr(Business(
                 _id=_id,
@@ -214,7 +266,9 @@ class Business(DocumentObject):
                 ),
                 owner_id_card=image_id,
                 national_business_id=national_id_business_id,
-                metrics=metrics
+                metrics=metrics,
+                approved=False,
+                orders=[]
             )),
             upsert=True,
             return_document=ReturnDocument.AFTER
@@ -225,8 +279,11 @@ class Business(DocumentObject):
 
     @staticmethod
     def get_business_by_id(business_id: ObjectId) -> Business:
+        doc = businesses_collection.find_one({"_id": business_id})
+        if doc is None:
+            doc = unapproved_businesses_collection.find_one({"_id": business_id})
         return Business.document_repr_to_object(
-            businesses_collection.find_one({"_id": business_id})
+            doc
         )
 
     @staticmethod
@@ -234,17 +291,22 @@ class Business(DocumentObject):
         return businesses_collection.count_documents({"_id": _id}, limit=1) == 1
 
     @staticmethod
-    def get_db_repr(business: Business, get_long_names: bool = False):
+    def get_db_repr(business: Business, get_long_names: bool = False, get_image=False):
         res = {value: getattr(business, key) for key, value in Business.LONG_TO_SHORT.items()}
 
         res["loc"] = Location.get_db_repr(res.get('loc'), get_long_names) if res.get('loc', None) is not None else None
         res["it"] = list(map(str, res.get("it", []))) if get_long_names else res.get("it", [])
+        res["ord"] = list(map(str, res.get("ord", []))) if get_long_names else res.get("ord", [])
         res["cat"] = list(map(lambda category: category_module.Category.get_db_repr(category, get_long_names), res.get("cat", [])))
         res["cntc"] = contact_module.Contact.get_db_repr(res["cntc"], get_long_names)
         res["oic"] = res["oic"].__getstate__()
         res["mtc"] = metrics_mod.BusinessMetrics.get_db_repr(res['mtc'], get_long_names)
 
         if get_long_names:
+            if get_image:
+                res["oic"] = base64.b64encode(business.owner_id_card.get_image("business_ids/")).decode('utf-8')
+
+            res["_id"] = str(business._id)
             res = {business.lengthen_field_name(key): value for key, value in res.items()}
 
         return res
@@ -278,7 +340,6 @@ class Business(DocumentObject):
 
     def __getstate__(self):
         res = Business.get_db_repr(self, True)
-        res["_id"] = str(self._id)
         return res
 
     def __setstate__(self, state):
