@@ -6,9 +6,10 @@ import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
-import database.business.item.item_store_format as isf_module
-import database.business.item.review as review_module
 import database.business.item.item_metrics as metrics_mod
+import database.business.item.item_store_format as isf_module
+import database.business.item.modification_button as mod_module
+import database.business.item.review as review_module
 from database import Image, DocumentObject, items_collection, Location
 
 
@@ -101,14 +102,29 @@ class Item(DocumentObject):
             return_document=ReturnDocument.AFTER
         ))
 
-    def add_image(self, image: Image) -> Item:
-        return Item.document_repr_to_object(
-            items_collection.find_one_and_update(
+    def add_image(self, image: Image, index: int) -> Item:
+        doc: dict
+        if index < len(self.images):
+            query = {"$set": {f"im.{index}": image.image_id}}
+            if len(self.images) == 0:
+                query["$set"]['pi'] = 0
+            doc = items_collection.find_one_and_update(
                 {"_id": self._id},
-                {"$addToSet": {f"im": image.image_id}},
+                query,
                 return_document=ReturnDocument.AFTER
             )
-        )
+        else:
+            query = {"$addToSet": {"im": image.image_id}}
+            if len(self.images) == 0:
+                query["$set"] = {"pi": 0}
+
+            doc = items_collection.find_one_and_update(
+                {"_id": self._id},
+                query,
+                return_document=ReturnDocument.AFTER
+            )
+
+        return Item.document_repr_to_object(doc)
 
     def remove_image(self, index: int) -> Item:
         items_collection.update_one({"_id": self._id}, {"$unset": {f"im.{index}": 1}})
@@ -163,33 +179,32 @@ class Item(DocumentObject):
             brand: str,
             category: str,
             stock: int,
-            added_tags: List[str],
-            removed_tags: List[str],
-            add_image: str,
+            tags: List[str],
+            modification_buttons: List[mod_module.ModificationButton],
 
     ):
-        lowered_added_tags = list(map(lambda tag: tag.lower(), added_tags))
-        lowered_removed_tags = list(map(lambda tag: tag.lower(), removed_tags))
+        lowered_tags = list(map(lambda x: x.lower(), tags))
+        set_update = {
+            "isf.ttl": title if title is not None else self.item_store_format.title,
+            "isf.stl": subtitle if subtitle is not None else self.item_store_format.subtitle,
+            "isf.dsc": description if description is not None else self.item_store_format.description,
+            "p": price if price is not None else self.price,
+            "br": brand if brand is not None else self.brand,
+            "cat": category if category is not None else self.category,
+            "stk": stock if stock is not None else self.stock,
+        }
+
+        if modification_buttons is not None and len(modification_buttons) > 0:
+            for mod_button in modification_buttons:
+                set_update[f"isf.mod.{mod_button.side.value}"] = mod_module.ModificationButton.get_db_repr(mod_button, False)
+
+        if len(lowered_tags) > 0:
+            set_update["tg"] = lowered_tags
 
         return Item.document_repr_to_object(items_collection.find_one_and_update(
             {"_id": self._id},
             {
-                "$set": {
-                    "isf.ttl": title if title is not None else self.item_store_format.title,
-                    "isf.stl": subtitle if subtitle is not None else self.item_store_format.subtitle,
-                    "isf.dsc": description if description is not None else self.item_store_format.description,
-                    "p": price if price is not None else self.price,
-                    "br": brand if brand is not None else self.brand,
-                    "cat": category if category is not None else self.category,
-                    "stk": stock if stock is not None else self.stock
-                },
-                "$pullAll": {
-                    "tg": lowered_removed_tags
-                } if len(lowered_removed_tags) > 0 else {},
-                "$addToSet": {
-                    "tg": {"$each": lowered_added_tags} if len(lowered_added_tags) > 0 else {"$each": []},
-                    "im": add_image
-                },
+                "$set": set_update,
             },
             upsert=False,
             return_document=ReturnDocument.AFTER
@@ -303,7 +318,6 @@ class Item(DocumentObject):
         if self.should_recalculate_rating:
             self.should_recalculate_rating = sum(map(lambda review: review.should_recalculate_rating, self.reviews)) / float(len(self.reviews))
         return self.should_recalculate_rating
-
 
     def shorten_field_name(self, field_name):
         return Item.LONG_TO_SHORT.get(field_name, None)

@@ -4,7 +4,7 @@ from database import Image
 
 
 class ModificationButton:
-    def __init__(self, name, preferred_side, data: List[bytes], data_type: int, multi_select: bool):
+    def __init__(self, name, preferred_side, data: List[object], data_type: int, multi_select: bool):
         self.name = name
         self.preferred_side = preferred_side
         self.data = data
@@ -33,9 +33,9 @@ class ItemUpdate:
             category: str,
             add_tags: List[str],
             remove_tags: List[str],
-            add_image_id: str,
-            remove_image: int,
-            stock: int
+            tags: List[str],
+            stock: int,
+            modification_buttons: List[ModificationButton],
     ):
         self.title = title
         self.subtitle = subtitle
@@ -45,9 +45,9 @@ class ItemUpdate:
         self.category = category
         self.add_tags = add_tags
         self.remove_tags = remove_tags
-        self.add_image_id = add_image_id
-        self.remove_image = remove_image
         self.stock = stock
+        self.modification_buttons = modification_buttons
+        self.tags = tags
 
 
 class Review:

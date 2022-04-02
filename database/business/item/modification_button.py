@@ -144,8 +144,8 @@ class ModificationButton(DocumentObject):
         return res
 
     @staticmethod
-    def document_repr_to_object(doc, **kwargs):
-        args = {key: doc[value] for key, value in ModificationButton.LONG_TO_SHORT.items()}
+    def document_repr_to_object(doc, use_long_name=False, **kwargs):
+        args = {key: doc[value if not use_long_name else key] for key, value in ModificationButton.LONG_TO_SHORT.items()}
 
         args["data_type"] = ModificationButtonDataType(args["data_type"])
         data_type = args["data_type"]

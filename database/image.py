@@ -22,7 +22,9 @@ class Image:
         return s3Bucket.delete(folder_name + self.image_id)
 
     @staticmethod
-    def upload(image: bytes, key=str(uuid.uuid4()), folder_name: str = "") -> Image:
+    def upload(image: bytes, key=None, folder_name: str = "") -> Image:
+        if key is None:
+            key = str(uuid.uuid4())
         res = s3Bucket.upload(image, key, folder_name)
         if res is not None:
             raise RuntimeError("Failed to upload image.\n" + str(res))

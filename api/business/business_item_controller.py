@@ -1,10 +1,12 @@
+import uuid
+
 from bson import ObjectId
 from pymongo import ReturnDocument
 from web_framework_v2 import RequestBody, PathVariable, QueryParameter, HttpResponse, HttpStatus
 
 from body import ItemCreation, ItemUpdate
 from body import Review
-from database import Item, ItemStoreFormat, Business, BusinessUser, User, items_collection, Location
+from database import Item, ItemStoreFormat, Business, BusinessUser, User, items_collection, ModificationButton, Image
 from database.business.item.item_metrics import ItemMetrics
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
 from .. import app, auth_fail
@@ -104,7 +106,8 @@ def update_item_stock(
             "error": f"Item with id {item_id} doesn't exist"
         }
 
-    item_doc = items_collection.find_one_and_update({"_id": _id}, {"$set": {Item.LONG_TO_SHORT["stock"]: stock}}, return_document=ReturnDocument.AFTER)
+    item_doc = items_collection.find_one_and_update({"_id": _id}, {"$set": {Item.LONG_TO_SHORT["stock"]: stock}},
+                                                    return_document=ReturnDocument.AFTER)
     if item_doc is None:
         res.status = HttpStatus.UNAUTHORIZED
         return {
@@ -112,6 +115,85 @@ def update_item_stock(
         }
 
     return Item.document_repr_to_object(item_doc)
+
+
+@BusinessJwtTokenAuth(on_fail=auth_fail)
+@app.post("/business/item/{item_id}/image")
+def swap_image_of_item(
+        token_data: BusinessJwtTokenAuth,
+        item_id: PathVariable("item_id"),
+        index: QueryParameter("index", int),
+        image: RequestBody(raw_format=True),
+        res: HttpResponse
+):
+    user: BusinessUser = token_data
+
+    if not isinstance(index, int):
+        return {
+            "error": "must supply query parameter 'index' as an integer"
+        }
+
+    if len(image) < 100:
+        res.status = HttpStatus.BAD_REQUEST
+        return {
+            "error": "Image must be at least 100 bytes"
+        }
+
+    item_id = ObjectId(item_id)
+    item = Item.get_item(item_id)
+    if index is None:
+        index = len(item.images)
+
+    if item.business_id != user.business_id:
+        res.status = HttpStatus.UNAUTHORIZED
+        return
+
+    result = Image.upload(image, folder_name="items/")
+    if result.image_id is None:
+        res.status = HttpStatus.INTERNAL_SERVER_ERROR
+        return {
+            "error": "failed"
+        }
+
+    if index < len(item.images):
+        item.images[index].delete_image("items/")
+
+    return item.add_image(result, index)
+
+
+@BusinessJwtTokenAuth(on_fail=auth_fail)
+@app.delete("/business/item/{item_id}/image")
+def remove_image_from_item(
+        token_data: BusinessJwtTokenAuth,
+        item_id: PathVariable("item_id"),
+        index: QueryParameter("index", int),
+        res: HttpResponse,
+):
+    user: BusinessUser = token_data
+    if index is None or not isinstance(index, int):
+        res.status = HttpStatus.BAD_REQUEST
+        return {
+            "error": "must supply query parameter 'index' as an integer"
+        }
+
+    item_id = ObjectId(item_id)
+    item = Item.get_item(item_id)
+
+    if item.business_id != user.business_id:
+        res.status = HttpStatus.UNAUTHORIZED
+        return
+
+    if index >= len(item.images):
+        res.status = HttpStatus.BAD_REQUEST
+        return {
+            "error": "No such index"
+        }
+
+    image = item.images[index]
+    item = item.remove_image(index)
+    print(image)
+    image.delete_image("items/")
+    return item
 
 
 @BusinessJwtTokenAuth(on_fail=auth_fail)
@@ -125,13 +207,19 @@ def update_item(
     user: BusinessUser = token_data
     item_update_data: ItemUpdate = update_data
 
-    item = Item.get_item(ObjectId(item_id))
+    item_id = ObjectId(item_id)
+    item = Item.get_item(item_id)
     if item.business_id != user.business_id:
         res.status = HttpStatus.UNAUTHORIZED
         return
 
-    add_tags = list(filter(lambda tag: tag not in item_update_data.remove_tags, item_update_data.add_tags))
-    remove_tags = list(filter(lambda tag: tag not in item_update_data.add_tags, item_update_data.remove_tags))
+    add_tags = set(item_update_data.add_tags if item_update_data.add_tags is not None else [])
+    remove_tags = set(item_update_data.remove_tags if item_update_data.remove_tags is not None else [])
+
+    add_tags = list(filter(lambda tag: tag not in remove_tags, add_tags))
+    remove_tags = list(filter(lambda tag: tag not in add_tags, remove_tags))
+    tags = set(item_update_data.tags + add_tags)
+    tags = list(filter(lambda tag: tag not in remove_tags, tags))
 
     item = item.update_fields(
         title=item_update_data.title,
@@ -141,13 +229,10 @@ def update_item(
         brand=item_update_data.brand,
         category=item_update_data.category,
         stock=item_update_data.stock,
-        added_tags=add_tags,
-        removed_tags=remove_tags,
-        add_image=item_update_data.add_image_id,
+        tags=tags,
+        modification_buttons=list(
+            map(lambda x: ModificationButton.document_repr_to_object(x, True, item_id=item_id), item_update_data.modification_buttons))
     )
-
-    if item_update_data.remove_image is not None and 0 < item_update_data.remove_image < len(item.images):
-        item = item.remove_image(item_update_data.remove_image)
 
     return item
 
