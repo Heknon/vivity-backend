@@ -22,7 +22,7 @@ class BusinessMetrics(DocumentObject):
 
     def add_view(self):
         return business_module.Business.document_repr_to_object(
-            businesses_collection.find_one_and_update({"_id": self.business_id}, {"$inc", "mtc.vws"}, return_document=ReturnDocument.AFTER)
+            businesses_collection.find_one_and_update({"_id": self.business_id}, {"$inc": {"mtc.vws": 1}}, return_document=ReturnDocument.AFTER)
         )
 
     @staticmethod

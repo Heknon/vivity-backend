@@ -28,22 +28,22 @@ class ItemMetrics(DocumentObject):
 
     def add_view(self):
         return item_module.Item.document_repr_to_object(
-            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc", "mtc.vws"}, return_document=ReturnDocument.AFTER)
+            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc": {"mtc.vws": 1}}, return_document=ReturnDocument.AFTER)
         )
 
     def add_order(self):
         return item_module.Item.document_repr_to_object(
-            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc", "mtc.ods"}, return_document=ReturnDocument.AFTER)
+            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc": {"mtc.ods": 1}}, return_document=ReturnDocument.AFTER)
         )
 
     def add_like(self):
         return item_module.Item.document_repr_to_object(
-            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc", "mtc.lks"}, return_document=ReturnDocument.AFTER)
+            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc": {"mtc.lks": 1}}, return_document=ReturnDocument.AFTER)
         )
 
     def remove_like(self):
         return item_module.Item.document_repr_to_object(
-            items_collection.find_one_and_update({"_id": self.item_id}, {"$dec", "mtc.lks"}, return_document=ReturnDocument.AFTER)
+            items_collection.find_one_and_update({"_id": self.item_id}, {"$inc": {"mtc.lks": -1}}, return_document=ReturnDocument.AFTER)
         )
 
     @staticmethod
