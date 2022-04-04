@@ -178,7 +178,7 @@ class BusinessData:
             email.strip(),
             phone.strip(),
             business_owner_id,
-            business_national_number.strip()
+            business_national_number
         )
 
         user = user.promote_to_business_user(user._id, business._id)
