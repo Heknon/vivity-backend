@@ -42,21 +42,21 @@ def create_item(
 
     result = Item.save_item(
         business_id=user.business_id,
-        business_name=business.name,
+        business_name=business.name.strip(),
         price=item_creation_data.price,
         images=[],
         preview_image=-1,
         reviews=[],
         item_store_format=ItemStoreFormat(
             item_id=None,
-            title=item_creation_data.title,
-            subtitle=item_creation_data.subtitle,
+            title=item_creation_data.title.strip(),
+            subtitle=item_creation_data.subtitle.strip(),
             description="",
             modification_buttons=[]
         ),
-        brand=item_creation_data.brand,
-        category=item_creation_data.category,
-        tags=item_creation_data.tags,
+        brand=item_creation_data.brand.strip(),
+        category=item_creation_data.category.strip(),
+        tags=list(map(lambda x: x.lower().strip(), item_creation_data.tags)),
         stock=0,
         metrics=ItemMetrics(
             item_id=None,
@@ -216,15 +216,15 @@ def update_item(
     add_tags = list(filter(lambda tag: tag not in remove_tags, add_tags))
     remove_tags = list(filter(lambda tag: tag not in add_tags, remove_tags))
     tags = set(item_update_data.tags + add_tags)
-    tags = list(filter(lambda tag: tag not in remove_tags, tags))
+    tags = list(filter(lambda tag: tag.lower().strip() not in remove_tags, tags))
 
     item = item.update_fields(
-        title=item_update_data.title,
-        subtitle=item_update_data.subtitle,
-        description=item_update_data.description,
+        title=item_update_data.title.strip(),
+        subtitle=item_update_data.subtitle.strip(),
+        description=item_update_data.description.strip(),
         price=item_update_data.price,
-        brand=item_update_data.brand,
-        category=item_update_data.category,
+        brand=item_update_data.brand.strip(),
+        category=item_update_data.category.strip(),
         stock=item_update_data.stock,
         tags=tags,
         modification_buttons=list(

@@ -173,12 +173,12 @@ class BusinessData:
             return {'error': "You already own a business!"}
 
         business: Business = Business.create_business(
-            name,
+            name.strip(),
             Location(longitude, latitude),
-            email,
-            phone,
+            email.strip(),
+            phone.strip(),
             business_owner_id,
-            business_national_number
+            business_national_number.strip()
         )
 
         user = user.promote_to_business_user(user._id, business._id)

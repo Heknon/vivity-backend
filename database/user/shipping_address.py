@@ -119,14 +119,14 @@ class ShippingAddress(DocumentObject):
     @staticmethod
     def get_db_repr(address: ShippingAddress, get_long_names: bool = False):
         res = {
-            "ph": address.phone,
-            "zp": address.zip_code,
-            "st": address.street,
-            "ct": address.city,
-            "cty": address.country,
-            "etc": address.extra_info,
-            "prv": address.province,
-            "nm": address.name
+            "ph": address.phone.strip(),
+            "zp": address.zip_code.strip(),
+            "st": address.street.strip(),
+            "ct": address.city.strip(),
+            "cty": address.country.strip(),
+            "etc": address.extra_info.strip(),
+            "prv": address.province.strip(),
+            "nm": address.name.strip()
         }
 
         if get_long_names:

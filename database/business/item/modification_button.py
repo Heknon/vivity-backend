@@ -130,11 +130,14 @@ class ModificationButton(DocumentObject):
 
         data_type = mod.data_type
         res["dt"] = data_type.value
+        res['nm'] = mod.name.strip()
 
         if data_type == ModificationButtonDataType.Color:
             res["dta"] = list(map(lambda color_hex: int(color_hex.hexColor), res.get("dta", [])))
         elif data_type == ModificationButtonDataType.Image:
             res["dta"] = list(map(lambda image: image.image_id, res.get("dta", [])))
+        elif data_type == ModificationButtonDataType.Text:
+            res["dta"] = list(map(lambda text: text.strip(), res.get("dta", [])))
 
         res["sd"] = res["sd"].value
 
@@ -149,11 +152,14 @@ class ModificationButton(DocumentObject):
 
         args["data_type"] = ModificationButtonDataType(args["data_type"])
         data_type = args["data_type"]
+        args['name'] = args['name'].strip()
 
         if data_type == ModificationButtonDataType.Color:
             args["data"] = list(map(lambda color_hex: Color.document_repr_to_object(color_hex), args.get("data", [])))
         elif data_type == ModificationButtonDataType.Image:
             args["data"] = list(map(lambda image_id: Image(image_id), args.get("data", [])))
+        elif data_type == ModificationButtonDataType.Text:
+            args["data"] = list(map(lambda text: text.strip(), args.get("data", [])))
 
         args["side"] = ModificationButtonSide._value2member_map_[args["side"]]
         args["item_id"] = kwargs["item_id"]
