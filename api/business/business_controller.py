@@ -110,7 +110,7 @@ class BusinessData:
                 if longitude is None or latitude is None:
                     continue
 
-                locs.add(Location(longitude, latitude))
+                locs.add(Location(latitude, longitude))
 
         if hasattr(business_update_data, "remove_locations"):
             locations = [business_update_data.remove_locations] if type(business_update_data.remove_locations) is not list \
@@ -124,7 +124,7 @@ class BusinessData:
                 if longitude is None or latitude is None:
                     continue
 
-                newLoc = Location(longitude, latitude)
+                newLoc = Location(latitude, longitude)
                 if newLoc in locs:
                     locs.remove(newLoc)
 
@@ -154,8 +154,8 @@ class BusinessData:
             name: QueryParameter("name"),
             email: QueryParameter("email"),
             phone: QueryParameter("phone"),
-            longitude: QueryParameter("longitude", float),
             latitude: QueryParameter("latitude", float),
+            longitude: QueryParameter("longitude", float),
 
     ):
         # TODO: Add actual verification system for business creation.
@@ -174,7 +174,7 @@ class BusinessData:
 
         business: Business = Business.create_business(
             name.strip(),
-            Location(longitude, latitude),
+            Location(latitude, longitude),
             email.strip(),
             phone.strip(),
             business_owner_id,
