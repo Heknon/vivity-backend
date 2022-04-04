@@ -1,10 +1,9 @@
-import binascii
+from web_framework_v2 import RequestBody, HttpResponse, HttpStatus, QueryParameter
 
-from bson import ObjectId
-from web_framework_v2 import JwtTokenAuth, RequestBody, HttpResponse, HttpStatus, QueryParameter
+from web_framework_v2 import RequestBody, HttpResponse, HttpStatus, QueryParameter
 
 from api import app, auth_fail
-from database import User, CartItem, SelectedModificationButton, ModificationButtonDataType, ShippingAddress
+from database import User, ShippingAddress
 from security import BlacklistJwtTokenAuth
 
 
@@ -54,4 +53,3 @@ class AddressController:
             }
 
         return user.remove_address(index).shipping_addresses
-

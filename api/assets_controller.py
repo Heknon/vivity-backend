@@ -1,18 +1,11 @@
 import base64
-import logging
 import os
-import time
-from concurrent import futures
 
-import boto3
-from boto3_type_annotations.s3 import Client
 from botocore.exceptions import ClientError
-from botocore.response import StreamingBody
-from s3_bucket.exceptions import BucketAccessDenied
 from web_framework_v2 import QueryParameter
 
 from api import app, auth_fail
-from database import Image, s3Bucket
+from database import Image
 from security import BlacklistJwtTokenAuth
 
 
@@ -23,9 +16,6 @@ def image_error_handler(err, traceback, req, res, path_vars) -> object:
 aws_access_key = os.getenv("AWS_ACCESS_KEY")
 aws_secret_key = os.getenv("AWS_SECRET_KEY")
 bucket_name = os.getenv("AWS_BUCKET_NAME")
-
-
-
 
 
 class AssetsController:

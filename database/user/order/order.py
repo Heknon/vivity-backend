@@ -9,7 +9,7 @@ from pymongo import ReturnDocument
 
 import database.user.shipping_address as sa_module
 from database import DocumentObject, orders_collection
-from database.user.order import OrderItem
+from .order_item import OrderItem
 from database.user.order.order_status import OrderStatus
 
 

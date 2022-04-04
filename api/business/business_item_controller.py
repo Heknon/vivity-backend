@@ -1,5 +1,3 @@
-import uuid
-
 from bson import ObjectId
 from pymongo import ReturnDocument
 from web_framework_v2 import RequestBody, PathVariable, QueryParameter, HttpResponse, HttpStatus

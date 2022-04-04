@@ -2,7 +2,6 @@ from bson import ObjectId
 from pymongo import ReturnDocument
 
 import database.business.business as business_module
-
 from database import DocumentObject, businesses_collection
 
 

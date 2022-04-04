@@ -21,7 +21,8 @@ class AdminController:
             return
 
         get_images = get_images if get_images is not None and isinstance(get_images, bool) else False
-        businesses = list(map(lambda x: Business.get_db_repr(Business.document_repr_to_object(x), True, get_images), unapproved_businesses_collection.find()))
+        businesses = list(
+            map(lambda x: Business.get_db_repr(Business.document_repr_to_object(x), True, get_images), unapproved_businesses_collection.find()))
         return businesses
 
     @staticmethod
@@ -58,4 +59,3 @@ class AdminController:
             return Business.approve_business(business_id, note)
         else:
             return Business.move_business_to_unapproved(business_id, note)
-

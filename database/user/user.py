@@ -10,11 +10,11 @@ from pymongo import ReturnDocument
 from pymongo.results import DeleteResult
 from web_framework_v2 import JwtSecurity
 
-import database.user.liked_items as liked_items_module
+import database.user.cart as cart_module
 import database.user.order.order_history as order_history_module
 import database.user.shipping_address as shipping_address
 import database.user.user_options as user_options
-import database.user.cart as cart_module
+import database.user.liked_items as liked_items_module
 from body import TokenData
 from database import users_collection, DocumentObject, Image, blacklist
 
@@ -175,10 +175,13 @@ class User(DocumentObject):
             liked_items_module.LikedItems.document_repr_to_object(doc["lk"], _id=doc["_id"]) if doc.get("lk", None) is not None else None
 
         args["cart"] = \
-            cart_module.Cart.document_repr_to_object(doc["crt"], _id=doc["_id"]) if doc.get("crt", None) is not None else cart_module.Cart(args["_id"], [])
+            cart_module.Cart.document_repr_to_object(doc["crt"], _id=doc["_id"]) if doc.get("crt", None) is not None else cart_module.Cart(
+                args["_id"], [])
 
         args["order_history"] \
-            = order_history_module.OrderHistory.document_repr_to_object(doc["odh"], _id=doc["_id"]) if doc.get("odh", None) is not None else order_history_module.OrderHistory(args["_id"], [])
+            = order_history_module.OrderHistory.document_repr_to_object(doc["odh"], _id=doc["_id"]) if doc.get("odh",
+                                                                                                               None) is not None else order_history_module.OrderHistory(
+            args["_id"], [])
 
         if args.get("is_system_admin", None) is None:
             args["is_system_admin"] = False

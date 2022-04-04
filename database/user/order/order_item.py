@@ -5,7 +5,7 @@ from typing import List
 import jsonpickle
 from bson import ObjectId
 
-from database import DocumentObject, Image
+from database import DocumentObject
 from database.business.item import SelectedModificationButton
 
 

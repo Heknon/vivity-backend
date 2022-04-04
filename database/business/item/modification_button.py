@@ -7,8 +7,8 @@ import jsonpickle
 from bson import ObjectId
 from pymongo import ReturnDocument
 
-from database import DocumentObject, Image, Color, items_collection, items_collection
 import database.business.item as item_module
+from database import DocumentObject, Image, Color, items_collection
 
 
 class ModificationButtonDataType(Enum):

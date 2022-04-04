@@ -1,4 +1,3 @@
-import json
 from typing import Union
 
 from bson import ObjectId
@@ -59,7 +58,6 @@ class BusinessData:
             }
 
         return Order.get_orders(business.orders)
-
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)

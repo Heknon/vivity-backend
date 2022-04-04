@@ -1,7 +1,5 @@
 from typing import List
 
-from database import Image
-
 
 class ModificationButton:
     def __init__(self, name, preferred_side, data: List[object], data_type: int, multi_select: bool):

@@ -1,10 +1,10 @@
 from bson import ObjectId
 from web_framework_v2 import PathVariable, RequestBody, QueryParameter, HttpResponse, HttpStatus
 
-from database import Business, BusinessUser, Category
-from .. import app
 from body import UpdateCategoryData
+from database import Business, BusinessUser, Category
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
+from .. import app
 
 
 @BlacklistJwtTokenAuth()
@@ -80,4 +80,3 @@ def delete_category(
 
     business.remove_category(category)
     response.status = HttpStatus.NO_CONTENT
-

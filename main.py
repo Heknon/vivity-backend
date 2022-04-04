@@ -2,6 +2,7 @@ import atexit
 import logging
 import signal
 import sys
+import time
 
 from pymongo import ReturnDocument
 
@@ -14,11 +15,12 @@ logger = logging.getLogger(__name__)
 def main():
     api.app.start()
     cmd = input("Enter a command: ")
+    time.sleep(1)
     while cmd != "exit":
         handle_command(cmd)
         cmd = input("Enter a command: ")
 
-    byebye()
+    byebye(0, 0)
 
 
 def handle_command(cmd: str):
@@ -49,6 +51,7 @@ def byebye(num, frame):
     print(f"Shutting down - code {num}, frame: {frame}")
     api.app.shutdown()
 
+    exit()
     sys.exit(0)
 
 

@@ -1,7 +1,5 @@
-import binascii
-
 from bson import ObjectId
-from web_framework_v2 import JwtTokenAuth, RequestBody, HttpResponse, HttpStatus
+from web_framework_v2 import RequestBody, HttpResponse, HttpStatus
 
 from api import app, auth_fail
 from database import User, CartItem, SelectedModificationButton, ModificationButtonDataType
