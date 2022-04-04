@@ -191,7 +191,6 @@ def remove_image_from_item(
 
     image = item.images[index]
     item = item.remove_image(index)
-    print(image)
     image.delete_image("items/")
     return item
 

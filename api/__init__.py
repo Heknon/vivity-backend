@@ -19,12 +19,12 @@ def error_handler(error: Exception, traceback: str, req: HttpRequest, res: HttpR
     }
 
 
-HOST = "192.168.1.15"
+HOST = "0.0.0.0"
 app = Framework(
     static_folder="",
     static_url_path="",
     host=HOST,
-    port=80,
+    port=20200,
     log_level=logging.INFO,
     error_handler=error_handler
 )
