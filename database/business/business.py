@@ -270,7 +270,8 @@ class Business(DocumentObject):
                     0,
                 ),
                 approved=False,
-                orders=[]
+                orders=[],
+                admin_note="",
             )),
             upsert=True,
             return_document=ReturnDocument.AFTER
