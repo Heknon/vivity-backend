@@ -27,8 +27,8 @@ class RegistrationTokenFactory(JwtTokenFactory):
         if "name" not in request_body or "email" not in request_body or "password" not in request_body or "phone" not in request_body:
             return False, AuthenticationResult.MissingFields, None
 
-        email = request_body["email"]
-        password = request_body["password"]
+        email: str = request_body["email"].strip()
+        password: str = request_body["password"]
 
         if not VALIDATOR.validate(password):
             return False, AuthenticationResult.PasswordInvalid, None
@@ -39,8 +39,8 @@ class RegistrationTokenFactory(JwtTokenFactory):
 
         user = User.create_new_user(
             email,
-            request_body["name"],
-            request_body["phone"],
+            request_body["name"].strip(),
+            request_body["phone"].strip(),
             password,
             True
         )
@@ -59,7 +59,7 @@ class LoginTokenFactory(JwtTokenFactory):
         if "email" not in request_body or "password" not in request_body:
             return False, AuthenticationResult.MissingFields, None
 
-        email = request_body["email"]
+        email = request_body["email"].strip()
         password = request_body["password"]
 
         if not VALIDATOR.validate(password):
@@ -85,7 +85,8 @@ class LoginTokenFactory(JwtTokenFactory):
 
 
 class BlacklistJwtTokenAuth(JwtTokenAuth):
-    def __init__(self, on_fail=lambda request, response: None, check_blacklist: bool = False, raw_document=False, no_fail=False, fail_on_null_result=True):
+    def __init__(self, on_fail=lambda request, response: None, check_blacklist: bool = False, raw_document=False, no_fail=False,
+                 fail_on_null_result=True):
         super().__init__(on_fail, fail_on_null_result)
         self.check_blacklist = check_blacklist
         self.raw_document = raw_document

@@ -19,7 +19,7 @@ def error_handler(error: Exception, traceback: str, req: HttpRequest, res: HttpR
     }
 
 
-HOST = "localhost"
+HOST = "192.168.1.15"
 app = Framework(
     static_folder="",
     static_url_path="",
