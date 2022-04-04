@@ -9,11 +9,11 @@ from . import app
 
 def register_fail(req: HttpRequest, res: HttpResponse, data: AuthenticationResult):
     res.status = HttpStatus.UNAUTHORIZED
-    return json.dumps({
+    return {
         "token": None,
         "auth_result": data.value,
         "auth_result_text": data.name,
-    })
+    }
 
 
 @RegistrationTokenFactory(on_fail=register_fail)
@@ -21,10 +21,10 @@ def register_fail(req: HttpRequest, res: HttpResponse, data: AuthenticationResul
 def register(
         factory_result: RegistrationTokenFactory,
 ):
-    return json.dumps({
+    return {
         "token": factory_result,
         "auth_result": AuthenticationResult.Success.value
-    })
+    }
 
 
 @LoginTokenFactory(on_fail=auth_fail)
