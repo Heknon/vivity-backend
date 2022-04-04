@@ -243,7 +243,6 @@ class Business(DocumentObject):
             phone: str,
             image_id_card: bytes,
             national_id_business_id: str,
-            metrics: metrics_mod.BusinessMetrics
     ) -> Business:
         _id = ObjectId()
         image_id: Image = Image.upload(image_id_card, folder_name="business_ids/")
@@ -266,7 +265,10 @@ class Business(DocumentObject):
                 ),
                 owner_id_card=image_id,
                 national_business_id=national_id_business_id,
-                metrics=metrics,
+                metrics=metrics_mod.BusinessMetrics(
+                    _id,
+                    0,
+                ),
                 approved=False,
                 orders=[]
             )),
