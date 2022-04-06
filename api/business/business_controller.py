@@ -1,10 +1,12 @@
+import base64
 from typing import Union
 
 from bson import ObjectId
 from web_framework_v2 import QueryParameter, RequestBody, PathVariable, HttpRequest, HttpResponse, HttpStatus
 
-from body import BusinessUpdateData, AuthorizedRouteRequestBody, DictNoNone
-from database import Business, Location, User, BusinessUser, blacklist, Contact, Order
+from body import BusinessUpdateData, AuthorizedRouteRequestBody
+from body.business_create import BusinessCreate
+from database import Business, Location, User, BusinessUser, blacklist, Order
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
 from .. import app, auth_fail
 
@@ -79,68 +81,25 @@ class BusinessData:
     ):
         user: BusinessUser = user
         business_update_data: BusinessUpdateData
-        business: Business = Business.get_business_by_id(user.business_id)
 
-        if business is None:
-            response.status = HttpStatus.UNAUTHORIZED
-            return f"No business with ID {user.business_id}"
-
-        contact = Contact.get_db_repr(business.contact)
-
-        if hasattr(business_update_data, "contact") and type(business_update_data.contact) is dict:
-            for field_name in contact.keys():
-                lengthened = business.contact.lengthen_field_name(field_name)
-                if lengthened not in business_update_data.contact:
-                    continue
-
-                new_value = business_update_data.contact[lengthened]
-                contact[field_name] = new_value
-
-        locs = set(business.location)
-        if hasattr(business_update_data, "add_locations"):
-            locations = [business_update_data.add_locations] if type(business_update_data.add_locations) is not list \
-                else business_update_data.add_locations
-
-            for location in locations:
-                if type(location) is not dict:
-                    continue
-
-                longitude = location.get("longitude", None)
-                latitude = location.get("latitude", None)
-                if longitude is None or latitude is None:
-                    continue
-
-                locs.add(Location(latitude, longitude))
-
-        if hasattr(business_update_data, "remove_locations"):
-            locations = [business_update_data.remove_locations] if type(business_update_data.remove_locations) is not list \
-                else business_update_data.remove_locations
-            for location in locations:
-                if type(location) is not dict:
-                    continue
-
-                longitude = location.get("longitude", None)
-                latitude = location.get("latitude", None)
-                if longitude is None or latitude is None:
-                    continue
-
-                newLoc = Location(latitude, longitude)
-                if newLoc in locs:
-                    locs.remove(newLoc)
-
-        locations = list(locs)
-        result = DictNoNone(
-            name=business_update_data.name if hasattr(business_update_data, "name") else None,
-            contact=contact,
-            locations=list(map(Location.get_db_repr, locations))
+        updated = Business.update_business(
+            user.business_id,
+            business_update_data.location,
+            business_update_data.name,
+            business_update_data.contact.phone,
+            business_update_data.contact.email,
+            business_update_data.contact.instagram,
+            business_update_data.contact.twitter,
+            business_update_data.contact.facebook,
         )
 
-        business = business.update_fields(**result)
-        return {
-            "name": business.name,
-            "contact": Contact.get_db_repr(business.contact, True),
-            "locations": list(map(lambda loc: Location.get_db_repr(loc), business.location))
-        }
+        if updated is None:
+            response.status = HttpStatus.UNAUTHORIZED
+            return {
+                "error": "Business doesn't exist"
+            }
+
+        return updated
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
@@ -149,36 +108,30 @@ class BusinessData:
             user: BlacklistJwtTokenAuth,
             request: HttpRequest,
             response: HttpResponse,
-            business_owner_id: RequestBody(raw_format=True),
-            business_national_number: QueryParameter("business_national_number"),
-            name: QueryParameter("name"),
-            email: QueryParameter("email"),
-            phone: QueryParameter("phone"),
-            latitude: QueryParameter("latitude", float),
-            longitude: QueryParameter("longitude", float),
+            business_data: RequestBody(parameter_type=BusinessCreate),
 
     ):
-        # TODO: Add actual verification system for business creation.
-        if name is None or email is None or phone is None or longitude is None or latitude is None or business_national_number is None:
-            response.status = HttpStatus.BAD_REQUEST
-            return "Missing query parameters! Must include 'email', 'name', 'phone', 'longitude', 'latitude', 'business_national_number'."
-
-        if len(business_owner_id) < 10:
-            response.status = HttpStatus.BAD_REQUEST
-            return {'error': "Must pass the ID of the business owner."}
-
         user: Union[User, BusinessUser] = user
         if hasattr(user, "business_id"):
             response.status = HttpStatus.BAD_REQUEST
             return {'error': "You already own a business!"}
 
+        if business_data.name is None or business_data.email is None or business_data.phone is None or business_data.longitude is None \
+                or business_data.latitude is None or business_data.business_national_number is None or business_data.business_owner_id is None:
+            response.status = HttpStatus.BAD_REQUEST
+            return "Missing body parameters! Must include 'email', 'name', 'phone', 'longitude', 'latitude', 'business_national_number', 'owner_id'."
+
+        if len(business_data.business_owner_id) < 10:
+            response.status = HttpStatus.BAD_REQUEST
+            return {'error': "Must pass the ID of the business owner."}
+
         business: Business = Business.create_business(
-            name.strip(),
-            Location(latitude, longitude),
-            email.strip(),
-            phone.strip(),
-            business_owner_id,
-            business_national_number
+            business_data.name.strip(),
+            Location(business_data.latitude, business_data.longitude),
+            business_data.email.strip(),
+            business_data.phone.strip(),
+            base64.b64decode(business_data.business_owner_id),
+            business_data.business_national_number
         )
 
         user = user.promote_to_business_user(user._id, business._id)

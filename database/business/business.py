@@ -183,6 +183,41 @@ class Business(DocumentObject):
             )
         )
 
+    @staticmethod
+    def update_business(
+            _id: ObjectId,
+            location: Location,
+            name: str,
+            phone: str,
+            email: str,
+            instagram: str,
+            twitter: str,
+            facebook: str,
+    ):
+        setUpdate = {}
+        updates = [(Business.LONG_TO_SHORT["location"], Location.get_db_repr(location) if location is not None else None),
+                   (Business.LONG_TO_SHORT["name"], name),
+                   ("cntc.ph", phone),
+                   ("cntc.ml", email),
+                   ("cntc.ig", instagram),
+                   ("cntc.tw", twitter),
+                   ("cntc.fb", facebook)]
+        for (name, data) in updates:
+            if data is not None:
+                setUpdate[name] = data
+
+        update = {}
+        if len(setUpdate) > 0:
+            update["$set"] = setUpdate
+
+        return Business.document_repr_to_object(
+            businesses_collection.find_one_and_update(
+                {"_id": _id},
+                update,
+                return_document=ReturnDocument.AFTER,
+            )
+        )
+
     def get_items(self) -> List[item_module.Item]:
         return item_module.Item.get_items(*self.items)
 
@@ -316,6 +351,9 @@ class Business(DocumentObject):
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs):
+        if doc is None:
+            return None
+
         args = {key: doc[value] for key, value in Business.LONG_TO_SHORT.items()}
 
         args["location"] = Location.document_repr_to_object(args.get('location')) if args.get('location') is not None else None
