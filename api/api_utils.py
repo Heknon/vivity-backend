@@ -3,6 +3,8 @@ import logging
 
 from web_framework_v2 import HttpStatus, HttpRequest, HttpResponse
 
+from security import AuthenticationResult
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -14,6 +16,12 @@ def auth_fail(req: HttpRequest, res: HttpResponse, data):
 
     res.status = HttpStatus.UNAUTHORIZED
     res.content_type = "application/json"
-    return json.dumps({
-        "error": "Unauthorized"
-    })
+    j = {
+        "error": "Unauthorized",
+    }
+
+    if type(data) is AuthenticationResult:
+        if data.value > 9:
+            j['data'] = data.value
+
+    return json.dumps(j)

@@ -78,15 +78,21 @@ class LoginTokenFactory(JwtTokenFactory):
         _id = user_doc["_id"]
         user_auth = UserAuth.get_by_id(_id)
         otp = request_body.get("otp", None)
+        if user_auth.should_reset_attempts():
+            user_auth = user_auth.reset_attempts(_id)
+
+        correct_password = User.compare_to_hash(password, user_doc["pw"])
+        if otp is None and user_auth.hPasas_2fa and correct_password:
+            return False, AuthenticationResult.WrongOTP, None
+
         if not user_auth.validate_attempt_range():
             return False, AuthenticationResult.TooManyAttempts, None
+        elif not correct_password:
+            user_auth.register_failed_attempt(_id)
+            return False, AuthenticationResult.PasswordIncorrect, None
         elif not user_auth.is_correct_otp(otp):
             user_auth.register_failed_attempt(_id)
             return False, AuthenticationResult.WrongOTP, None
-
-        if not User.compare_to_hash(password, user_doc["pw"]):
-            user_auth.register_failed_attempt(_id)
-            return False, AuthenticationResult.PasswordIncorrect, None
 
         user: User | BusinessUser
         if "bid" in user_doc and user_doc["bid"] is not None:

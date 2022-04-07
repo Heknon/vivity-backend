@@ -23,6 +23,7 @@ access_token_blacklist_collection: collection.Collection = client.access_blackli
 refresh_token_blacklist_collection: collection.Collection = client.refresh_blacklist
 user_auth_collection: collection.Collection = client.user_auth
 
+users_collection.create_index([("ml", 1)], name="email", unique=True)
 items_collection.create_index([("loc", GEOSPHERE)], name="item_location_index", unique=False)
 items_collection.create_index([
     ("tg", TEXT),

@@ -7,6 +7,7 @@ import pyotp
 from bson import ObjectId
 from pymongo import ReturnDocument
 
+import database.user.user as user_module
 from database import DocumentObject, user_auth_collection
 
 
@@ -48,6 +49,13 @@ class UserAuth(DocumentObject):
 
         return True
 
+    def should_reset_attempts(self, max_attempts: int = 5, max_attempts_cooldown: datetime.timedelta = datetime.timedelta(minutes=5)):
+        if self.attempts >= max_attempts \
+                and datetime.datetime.now() > (self.last_attempt_time + max_attempts_cooldown):
+            return True
+
+        return False
+
     def is_correct_otp(self, otp: str):
         if not self.has_2fa:
             return True
@@ -55,9 +63,31 @@ class UserAuth(DocumentObject):
         return self.totp.now() == otp
 
     @staticmethod
+    def reset_attempts(_id: ObjectId):
+        return UserAuth.document_repr_to_object(
+            user_auth_collection.find_one_and_update(
+                {"_id": _id},
+                {
+                    "$set": {"atmps": 0},
+                },
+                return_document=ReturnDocument.AFTER
+            )
+        )
+
+    @staticmethod
     def get_by_id(_id: ObjectId):
         return UserAuth.document_repr_to_object(
             user_auth_collection.find_one({"_id": _id})
+        )
+
+    @staticmethod
+    def get_by_email(email: str):
+        user = user_module.User.get_by_email(email, raw_document=False)
+        if user is None:
+            return None
+
+        return UserAuth.document_repr_to_object(
+            user_auth_collection.find_one({"_id": user.id})
         )
 
     @staticmethod

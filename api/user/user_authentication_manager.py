@@ -1,6 +1,7 @@
 import logging
 from typing import Union
 
+from bson import ObjectId
 from web_framework_v2 import RequestBody, QueryParameter, JwtSecurity, HttpResponse, HttpStatus, HttpRequest
 
 from api import auth_fail, HOST
@@ -101,6 +102,29 @@ class UserForgot:
             access_token_blacklist.add_to_blacklist(temporary_auth)
 
         return user.build_access_token(True).encode()
+
+    @staticmethod
+    @app.get("/user/otp")
+    def is_otp_enabled(
+            email: QueryParameter(query_name="email"),
+            response: HttpResponse
+    ):
+        if email is None or not isinstance(email, str):
+            response.status = HttpStatus.BAD_REQUEST
+            return {
+                "error": f"Must pass query parameter 'email'"
+            }
+
+        user_auth = UserAuth.get_by_email(email)
+        if user_auth is None:
+            response.status = HttpStatus.BAD_REQUEST
+            return {
+                "error": f"No user with email {email}"
+            }
+
+        return {
+            "enabled": user_auth.has_2fa
+        }
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
