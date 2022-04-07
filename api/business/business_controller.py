@@ -6,7 +6,7 @@ from web_framework_v2 import QueryParameter, RequestBody, PathVariable, HttpRequ
 
 from body import BusinessUpdateData, AuthorizedRouteRequestBody
 from body.business_create import BusinessCreate
-from database import Business, Location, User, BusinessUser, blacklist, Order
+from database import Business, Location, User, BusinessUser, access_token_blacklist, Order
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
 from .. import app, auth_fail
 
@@ -135,8 +135,8 @@ class BusinessData:
         )
 
         user = user.promote_to_business_user(user._id, business._id)
-        newToken = user.build_token(encoded=True)
-        blacklist.add_to_blacklist(request.headers["authorization"][8:])
+        newToken = user.build_access_token(sign=True)
+        access_token_blacklist.add_to_blacklist(request.headers["authorization"][8:])
         return {
             "token": newToken,
             "business": business

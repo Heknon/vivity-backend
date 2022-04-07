@@ -5,7 +5,8 @@ import logging
 from bson import ObjectId
 from web_framework_v2 import JwtTokenFactory, JwtTokenAuth
 
-from database import User, BusinessUser, blacklist
+from database import User, BusinessUser, access_token_blacklist
+from database.user_auth import UserAuth
 from security import AuthenticationResult, EMAIL_REGEX, VALIDATOR
 
 logger = logging.getLogger(__name__)
@@ -18,10 +19,10 @@ def validate_email(email: str):
 
 class RegistrationTokenFactory(JwtTokenFactory):
     def __init__(self, on_fail=lambda request, response: None):
-        super().__init__(on_fail, blacklist.TOKEN_EXPIRATION_TIME)
+        super().__init__(on_fail, access_token_blacklist.expiration_time)
 
     def token_data_builder(self, request, request_body, user: User):
-        return user.build_token()
+        return user.build_access_token()
 
     def authenticate(self, request, request_body) -> (bool, object, User):
         if "name" not in request_body or "email" not in request_body or "password" not in request_body or "phone" not in request_body:
@@ -45,15 +46,17 @@ class RegistrationTokenFactory(JwtTokenFactory):
             True
         )
 
+        UserAuth.create_from_id(user.id)
+
         return True, AuthenticationResult.Success, user
 
 
 class LoginTokenFactory(JwtTokenFactory):
     def __init__(self, on_fail=lambda request, response: None):
-        super().__init__(on_fail, blacklist.TOKEN_EXPIRATION_TIME)
+        super().__init__(on_fail, access_token_blacklist.expiration_time)
 
     def token_data_builder(self, request, request_body, user: User | BusinessUser):
-        return user.build_token()
+        return user.build_access_token()
 
     def authenticate(self, request, request_body) -> (bool, object, object):
         if "email" not in request_body or "password" not in request_body:
@@ -72,7 +75,17 @@ class LoginTokenFactory(JwtTokenFactory):
         if user_doc is None:
             return False, AuthenticationResult.EmailIncorrect, None
 
+        _id = user_doc["_id"]
+        user_auth = UserAuth.get_by_id(_id)
+        otp = request_body.get("otp", None)
+        if not user_auth.validate_attempt_range():
+            return False, AuthenticationResult.TooManyAttempts, None
+        elif not user_auth.is_correct_otp(otp):
+            user_auth.register_failed_attempt(_id)
+            return False, AuthenticationResult.WrongOTP, None
+
         if not User.compare_to_hash(password, user_doc["pw"]):
+            user_auth.register_failed_attempt(_id)
             return False, AuthenticationResult.PasswordIncorrect, None
 
         user: User | BusinessUser
@@ -81,6 +94,7 @@ class LoginTokenFactory(JwtTokenFactory):
         else:
             user = User.document_repr_to_object(user_doc)
 
+        user_auth.register_successful_attempt(_id)
         return True, AuthenticationResult.Success, user
 
 
@@ -106,11 +120,11 @@ class BlacklistJwtTokenAuth(JwtTokenAuth):
 
     @staticmethod
     def is_token_blacklisted(token: str):
-        return blacklist.in_blacklist(token)
+        return access_token_blacklist.in_blacklist(token)
 
     @staticmethod
     def blacklist_token(token):
-        blacklist.add_to_blacklist(token)
+        access_token_blacklist.add_to_blacklist(token)
 
     def decoded_token_transformer(self, request, request_body, decoded_token: dict) -> User | BusinessUser:
         if decoded_token is None:

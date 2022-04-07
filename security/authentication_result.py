@@ -12,3 +12,6 @@ class AuthenticationResult(Enum):
     EmailIncorrect = 7
     PasswordInvalid = 8
     EmailInvalid = 9
+    WrongOTP = 10
+    TooManyAttempts = 11
+

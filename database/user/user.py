@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import List
 
 import bcrypt
@@ -16,7 +17,8 @@ import database.user.shipping_address as shipping_address
 import database.user.user_options as user_options
 import database.user.liked_items as liked_items_module
 from body import TokenData
-from database import users_collection, DocumentObject, Image, blacklist
+from database import users_collection, DocumentObject, Image, access_token_blacklist
+from database.user_auth import UserAuth
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +246,12 @@ class User(DocumentObject):
             "odh": []
         }
 
-    def build_token(self, encoded=False):
+    def build_access_token(self, sign=False):
+        """
+        Builds a token based on the user object
+        :param sign: if true returns the signed base64 token, otherwise, returns json
+        :return: 
+        """
         token = {
             "id": str(self._id),
             "name": self.name,
@@ -255,15 +262,12 @@ class User(DocumentObject):
         if hasattr(self, "business_id"):
             token["business_id"] = str(self.business_id)
 
-        return token if not encoded else JwtSecurity.create_token(token, blacklist.TOKEN_EXPIRATION_TIME)
+        return token if not sign else JwtSecurity.create_access_token(token, access_token_blacklist.expiration_time)
 
     @staticmethod
     def delete_by_id(_id: ObjectId) -> DeleteResult:
+        UserAuth.delete_by_id(_id)
         return users_collection.delete_one({"_id": _id})
-
-    @staticmethod
-    def delete_by_email(email: str) -> DeleteResult:
-        return users_collection.delete_one({"email": email})
 
     @staticmethod
     def hash_password(password: str) -> bytes:

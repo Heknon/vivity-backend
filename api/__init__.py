@@ -1,22 +1,37 @@
 __all__ = ["auth_fail", "app", "HOST"]
 
+import json
 import logging
+import os
 
 logging.basicConfig(format='%(asctime)s %(module)s %(levelname)s: %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO
                     )
 
-from web_framework_v2 import Framework, JwtSecurity, HttpStatus, HttpResponse, HttpRequest
+from web_framework_v2 import Framework, JwtSecurity, HttpStatus, HttpResponse, HttpRequest, KeyPair
 
-JwtSecurity.set_secret("some_super_secret")
+JwtSecurity.set_access_key(
+    KeyPair(
+        os.getenv("JWT_ACCESS_PUBLIC_KEY").replace("\\n", '\n'),
+        os.getenv("JWT_ACCESS_PRIVATE_KEY").replace("\\n", '\n')
+    )
+)
+
+JwtSecurity.set_refresh_key(
+    KeyPair(
+        os.getenv("JWT_REFRESH_PUBLIC_KEY").replace("\\n", '\n'),
+        os.getenv("JWT_REFRESH_PRIVATE_KEY").replace("\\n", '\n')
+    )
+)
 
 
 def error_handler(error: Exception, traceback: str, req: HttpRequest, res: HttpResponse, path_variables: dict):
     logging.exception(error)
     res.statusCode = HttpStatus.BAD_REQUEST
-    return {
+    res.content_type = "application/json"
+    return json.dumps({
         "error": str(error)
-    }
+    })
 
 
 HOST = "0.0.0.0"

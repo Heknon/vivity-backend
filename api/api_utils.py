@@ -13,4 +13,7 @@ def auth_fail(req: HttpRequest, res: HttpResponse, data):
     )
 
     res.status = HttpStatus.UNAUTHORIZED
-    return {"error": "Unauthorized"}
+    res.content_type = "application/json"
+    return json.dumps({
+        "error": "Unauthorized"
+    })

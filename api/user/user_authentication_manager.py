@@ -5,7 +5,8 @@ from web_framework_v2 import RequestBody, QueryParameter, JwtSecurity, HttpRespo
 
 from api import auth_fail, HOST
 from communication import email_service
-from database import User, BusinessUser, blacklist
+from database import User, BusinessUser, access_token_blacklist
+from database.user_auth import UserAuth
 from security import BlacklistJwtTokenAuth, EMAIL_REGEX, VALIDATOR
 from .. import app
 
@@ -29,9 +30,10 @@ class UserForgot:
             response.status = HttpStatus.BAD_REQUEST
             return "A user with this email does not exist."
 
-        token = JwtSecurity.create_token({
+        # TODO: Move to different key pair
+        token = JwtSecurity.create_access_token({
             "email": email
-        }, blacklist.TOKEN_EXPIRATION_TIME)
+        }, access_token_blacklist.TOKEN_EXPIRATION_TIME)
         url = f"http://{HOST}/user/reset?temporary_auth={token}"
 
         email_service.send_forgot_password(
@@ -62,9 +64,9 @@ class UserForgot:
         used_temp_auth = False
 
         if temporary_auth is not None and user is None:
-            if blacklist.in_blacklist(temporary_auth):
+            if access_token_blacklist.in_blacklist(temporary_auth):
                 return "You can only change your password once per reset request."
-            res = JwtSecurity.decode_token(temporary_auth) if temporary_auth is not None else None
+            res = JwtSecurity.decode_access_token(temporary_auth) if temporary_auth is not None else None
 
             if res is None:
                 response.status = HttpStatus.UNAUTHORIZED
@@ -82,7 +84,7 @@ class UserForgot:
             return "Unauthorized"
 
         if previous_token is not None and not used_temp_auth:
-            if blacklist.in_blacklist(previous_token):
+            if access_token_blacklist.in_blacklist(previous_token):
                 logger.debug(f"Blacklisted token trying to reset password {previous_token}")
                 response.status = HttpStatus.UNAUTHORIZED
                 return "Previous token was blacklisted and cannot be used."
@@ -93,12 +95,37 @@ class UserForgot:
 
         user = user.update_fields(password=user.hash_password(password["password"]))
         if previous_token is not None:
-            blacklist.add_to_blacklist(previous_token)
+            access_token_blacklist.add_to_blacklist(previous_token)
 
         if used_temp_auth:
-            blacklist.add_to_blacklist(temporary_auth)
+            access_token_blacklist.add_to_blacklist(temporary_auth)
 
-        return user.build_token(True).encode()
+        return user.build_access_token(True).encode()
+
+    @staticmethod
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
+    @app.post("/user/otp")
+    def enable_otp(
+            raw_user: BlacklistJwtTokenAuth,
+            response: HttpResponse
+    ):
+        user: User = raw_user
+        user_auth = UserAuth.turn_on_otp(user.id)
+        response.status = HttpStatus.ACCEPTED
+        return {
+            "secret": user_auth.otp_secret
+        }
+
+    @staticmethod
+    @BlacklistJwtTokenAuth(on_fail=auth_fail)
+    @app.delete("/user/otp")
+    def disable_otp(
+            raw_user: BlacklistJwtTokenAuth,
+            response: HttpResponse
+    ):
+        user: User = raw_user
+        UserAuth.turn_off_otp(user.id)
+        response.status = HttpStatus.NO_CONTENT
 
 
 class DeleteUser:
