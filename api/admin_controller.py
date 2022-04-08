@@ -23,7 +23,6 @@ class AdminController:
         get_images = get_images if get_images is not None and isinstance(get_images, bool) else False
         businesses = list(
             map(lambda x: Business.get_db_repr(Business.document_repr_to_object(x), True, get_images), unapproved_businesses_collection.find()))
-        print(businesses)
         return businesses
 
     @staticmethod

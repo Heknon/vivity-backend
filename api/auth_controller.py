@@ -70,7 +70,6 @@ def refresh_access_token(token: QueryParameter(query_name="token"), res: HttpRes
         res.status = HttpStatus.UNAUTHORIZED
         return {"error": "Must pass query parameter 'token'"}
 
-    print(token)
     result = JwtSecurity.decode_refresh_token(token)
 
     if result is None:

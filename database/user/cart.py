@@ -26,7 +26,6 @@ class Cart:
 
     def replace_items(self, items: List[cart_item_module.CartItem]):
         db_items = list(map(lambda item: cart_item_module.CartItem.get_db_repr(item), items))
-        print(db_items)
         return user_module.User.document_repr_to_object(users_collection.find_one_and_update({"_id": self.user_id}, {
             "$set": {self.db_prefix: db_items}
         }, return_document=ReturnDocument.AFTER))

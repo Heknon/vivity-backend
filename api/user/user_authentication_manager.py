@@ -126,18 +126,22 @@ class UserForgot:
             }
 
         user: User = raw_user
-
         if not user.compare_hash(old_password):
             response.status = HttpStatus.UNAUTHORIZED
             return {
                 "error": "Wrong password"
             }
 
+        if old_password == new_password:
+            response.status = HttpStatus.BAD_REQUEST
+            return {
+                "error": "New password must be different"
+            }
+
         user = user.update_password(new_password)
         return {
             "access_token": user.build_access_token(sign=True)
         }
-
 
     @staticmethod
     @app.get("/user/otp")
