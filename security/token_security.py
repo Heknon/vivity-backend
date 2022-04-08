@@ -82,7 +82,7 @@ class LoginTokenFactory(JwtTokenFactory):
             user_auth = user_auth.reset_attempts(_id)
 
         correct_password = User.compare_to_hash(password, user_doc["pw"])
-        if otp is None and user_auth.hPasas_2fa and correct_password:
+        if otp is None and user_auth.has_2fa and correct_password:
             return False, AuthenticationResult.WrongOTP, None
 
         if not user_auth.validate_attempt_range():

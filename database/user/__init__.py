@@ -1,5 +1,6 @@
-__all__ = ["LikedItems", "ShippingAddress", "User", "UserOptions", "Order", "OrderHistory", "OrderItem", "BusinessUser", "Cart", "CartItem"]
+__all__ = ["LikedItems", "ShippingAddress", "User", "UserOptions", "Order", "OrderHistory", "OrderItem", "BusinessUser", "Cart", "CartItem", "Unit"]
 
+from .unit import Unit
 from .liked_items import LikedItems
 from .cart import Cart
 from .cart_item import CartItem

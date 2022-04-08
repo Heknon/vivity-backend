@@ -27,7 +27,7 @@ JwtSecurity.set_refresh_key(
 
 def error_handler(error: Exception, traceback: str, req: HttpRequest, res: HttpResponse, path_variables: dict):
     logging.exception(error)
-    res.statusCode = HttpStatus.BAD_REQUEST
+    res.status = HttpStatus.BAD_REQUEST
     res.content_type = "application/json"
     return json.dumps({
         "error": str(error)

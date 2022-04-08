@@ -5,17 +5,14 @@ from bson import ObjectId
 from pymongo import ReturnDocument
 
 import database.user as user
+import database.user.unit as units
 from database import DocumentObject, users_collection
 
 
 class UserOptions(DocumentObject):
     LONG_TO_SHORT = {
-        "business_search_radius": "bsr",
-        "distance_unit": "du",
+        "unit": "u",
         "currency_type": "ct",
-        "shirt_size": "shs",
-        "jeans_size": "jes",
-        "sweats_size": "sws",
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -23,24 +20,15 @@ class UserOptions(DocumentObject):
     def __init__(
             self,
             user_id: ObjectId,
-            business_search_radius: float,
-            distance_unit: str,
+            unit: units.Unit,
             currency_type: str,
-            shirt_size: str,
-            jeans_size: str,
-            sweats_size: str
     ):
         self.user_id = user_id
-        self.business_search_radius = business_search_radius
-        self.distance_unit = distance_unit
+        self.unit = unit
         self.currency_type = currency_type
-        self.shirt_size = shirt_size
-        self.jeans_size = jeans_size
-        self.sweats_size = sweats_size
 
         self.updatable_fields = {
-            "business_search_radius", "distance_unit", "currency_type",
-            "shirt_size", "jeans_size", "sweats_size"
+            "distance_unit", "currency_type"
         }
 
         self.generate_update_methods()
@@ -57,15 +45,23 @@ class UserOptions(DocumentObject):
             )
         )
 
-    def update_fields(self, **kwargs) -> user.User:
-        filtered_kwargs = filter(lambda item: item[0] in self.updatable_fields, kwargs.items())
-        update_dict = {
-            f"op.{self.shorten_field_name(key)}": value for key, value in filtered_kwargs
-        }
+    def update_fields(
+            self,
+            unit: units.Unit,
+            currency_type: str,
+            email: str,
+            phone: str,
+    ) -> user.User:
+        set_dict = {}
+        if unit is not None:
+            set_dict["u"] = unit.value
+
+        if currency_type is not None:
+            set_dict['ct'] = currency_type
 
         return user.User.document_repr_to_object(
             users_collection.find_one_and_update(
-                {"_id": ObjectId(self.user_id)}, {"$set": update_dict}, return_document=ReturnDocument.AFTER
+                {"_id": ObjectId(self.user_id)}, {"$set": set_dict}, return_document=ReturnDocument.AFTER
             )
         )
 
@@ -74,37 +70,22 @@ class UserOptions(DocumentObject):
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs) -> UserOptions:
-        return UserOptions(
-            user_id=kwargs["_id"],
-            business_search_radius=doc["bsr"],
-            distance_unit=doc["du"],
-            currency_type=doc["ct"],
-            shirt_size=doc["shs"],
-            jeans_size=doc["jes"],
-            sweats_size=doc["sws"],
-        )
+        args = {key: doc[value] for key, value in UserOptions.LONG_TO_SHORT.items()}
+        args["unit"] = units.Unit._value2member_map_[doc['u']]
+
+        return UserOptions(**args, user_id=kwargs["_id"])
 
     @staticmethod
     def default_object_repr() -> dict:
         return {
-            "bsr": 3,
-            "du": "km",
+            "u": units.Unit.Metric.value,
             "ct": "ils",
-            "shs": None,
-            "jes": None,
-            "sws": None,
         }
 
     @staticmethod
     def get_db_repr(options: UserOptions, get_long_names: bool = False):
-        res = {
-            "bsr": options.business_search_radius,
-            "du": options.distance_unit,
-            "ct": options.currency_type,
-            "shs": options.shirt_size,
-            "jes": options.jeans_size,
-            "sws": options.sweats_size
-        }
+        res = {value: getattr(options, key) for key, value in UserOptions.LONG_TO_SHORT.items()}
+        res["u"] = options.unit.value
 
         if get_long_names:
             res = {options.lengthen_field_name(key): value for key, value in res.items()}

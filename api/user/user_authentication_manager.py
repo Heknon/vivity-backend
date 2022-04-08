@@ -104,22 +104,60 @@ class UserForgot:
         return user.build_access_token(True).encode()
 
     @staticmethod
+    @BlacklistJwtTokenAuth()
+    @app.post("/user/password")
+    def reset_password(
+            raw_user: BlacklistJwtTokenAuth,
+            payload: RequestBody(),
+            response: HttpResponse,
+    ):
+        if 'new_password' not in payload or 'old_password' not in payload:
+            response.status = HttpStatus.BAD_REQUEST
+            return {
+                "error": "Must provide 'old_password' and 'new_password'"
+            }
+
+        old_password = payload['old_password']
+        new_password = payload['new_password']
+        if not VALIDATOR.validate(new_password):
+            response.status = HttpStatus.BAD_REQUEST
+            return {
+                "error": f"Must pass a valid password. {VALIDATOR.properties}"
+            }
+
+        user: User = raw_user
+
+        if not user.compare_hash(old_password):
+            response.status = HttpStatus.UNAUTHORIZED
+            return {
+                "error": "Wrong password"
+            }
+
+        user = user.update_password(new_password)
+        return {
+            "access_token": user.build_access_token(sign=True)
+        }
+
+
+    @staticmethod
     @app.get("/user/otp")
     def is_otp_enabled(
             email: QueryParameter(query_name="email"),
+            _id: QueryParameter(query_name="id"),
             response: HttpResponse
     ):
-        if email is None or not isinstance(email, str):
+        if email is None and _id is None:
             response.status = HttpStatus.BAD_REQUEST
             return {
-                "error": f"Must pass query parameter 'email'"
+                "error": f"Must pass query parameter 'email' or '_id'"
             }
-
-        user_auth = UserAuth.get_by_email(email)
+        using_id = _id is not None
+        _id = ObjectId(_id) if using_id else None
+        user_auth = UserAuth.get_by_id(_id) if using_id else UserAuth.get_by_email(email)
         if user_auth is None:
             response.status = HttpStatus.BAD_REQUEST
             return {
-                "error": f"No user with email {email}"
+                "error": f"No user with email {email} or id {_id}"
             }
 
         return {

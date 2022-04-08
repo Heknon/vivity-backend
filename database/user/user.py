@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from typing import List
 
 import bcrypt
@@ -12,10 +11,11 @@ from pymongo.results import DeleteResult
 from web_framework_v2 import JwtSecurity
 
 import database.user.cart as cart_module
+import database.user.liked_items as liked_items_module
 import database.user.order.order_history as order_history_module
 import database.user.shipping_address as shipping_address
+import database.user.unit as units
 import database.user.user_options as user_options
-import database.user.liked_items as liked_items_module
 from body import TokenData
 from database import users_collection, DocumentObject, Image, access_token_blacklist
 from database.user_auth import UserAuth
@@ -71,15 +71,29 @@ class User(DocumentObject):
 
         self.updatable_fields = {"email", "phone", "password", "profile_picture"}
 
-    def update_fields(self, **kwargs) -> User:
-        filtered_kwargs = filter(lambda item: item[0] in self.updatable_fields, kwargs.items())
-        update_dict = {
-            self.shorten_field_name(key): value for key, value in filtered_kwargs
-        }
+    def update_fields(
+            self,
+            email: str,
+            phone: str,
+            unit: units.Unit,
+            currency_type: str,
+    ) -> User:
+        set_dict = {}
+        if email is not None:
+            set_dict['ml'] = email
+
+        if phone is not None:
+            set_dict['ph'] = phone
+
+        if unit is not None:
+            set_dict['op.u'] = unit.value
+
+        if currency_type is not None:
+            set_dict['op.ct'] = currency_type
 
         return User.document_repr_to_object(
             users_collection.find_one_and_update(
-                {"_id": self._id}, {"$set": update_dict}, return_document=ReturnDocument.AFTER
+                {"_id": self._id}, {"$set": set_dict}, return_document=ReturnDocument.AFTER
             )
         )
 
@@ -116,6 +130,15 @@ class User(DocumentObject):
                 {"$set": {f"pfp": image.image_id if image is not None else None}},
                 return_document=ReturnDocument.AFTER
             )
+        )
+
+    def update_password(self, non_hashed_password: str):
+        hashed = User.hash_password(non_hashed_password)
+
+        return User.document_repr_to_object(
+            users_collection.find_one_and_update({"_id": self._id}, {
+                "$set": {"pw": hashed}
+            }, return_document=ReturnDocument.AFTER)
         )
 
     @staticmethod

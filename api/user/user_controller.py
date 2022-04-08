@@ -4,8 +4,8 @@ from bson import ObjectId
 from web_framework_v2 import RequestBody, QueryParameter, ContentType, HttpResponse, HttpStatus
 
 from api import auth_fail
-from body import UserSettings, PaymentData, DictNoNone
-from database import User, BusinessUser, Image, items_collection
+from body import UserSettings, PaymentData
+from database import User, BusinessUser, Image, items_collection, Unit
 from security import BlacklistJwtTokenAuth
 from .. import app
 
@@ -37,24 +37,26 @@ class UserData:
     @app.patch("/user")
     def update_user_data(
             user: BlacklistJwtTokenAuth,
-            user_settings: RequestBody(UserSettings)
+            user_settings: RequestBody(UserSettings),
+            response: HttpResponse,
     ):
         user: Union[User, BusinessUser] = user
         user_settings: UserSettings = user_settings
 
-        update = DictNoNone(
-            sweats_size=user_settings.sweats_size if hasattr(user_settings, "sweats_size") else None,
-            jeans_size=user_settings.jeans_size if hasattr(user_settings, "jeans_size") else None,
-            shirt_size=user_settings.shirt_size if hasattr(user_settings, "shirt_size") else None,
-            currency_type=user_settings.currency_type if hasattr(user_settings, "currency_type") else None,
-            distance_unit=user_settings.distance_unit if hasattr(user_settings, "distance_unit") else None,
-            business_search_radius=user_settings.business_search_radius if hasattr(user_settings, "business_search_radius") else None
-        )
+        if user_settings.currency_type is None and user_settings.unit is None and user_settings.email is None and user_settings.phone is None:
+            response.status = HttpStatus.BAD_REQUEST
+            return {
+                "error": "Must pass a field from 'currency_type', 'unit', 'email', 'phone'"
+            }
 
-        if len(update) == 0:
-            return f"Must pass at least one of the following fields: {user.options.updatable_fields}"
-
-        return user.options.update_fields(**update).options
+        unit = Unit._value2member_map_[user_settings.unit] if user_settings.unit is not None else None
+        user_res = user.update_fields(user_settings.email, user_settings.phone, unit, user_settings.currency_type)
+        return {
+            "options": user_res.options,
+            "email": user_res.email,
+            "phone": user_res.phone,
+            "access_token": user.build_access_token(sign=True)
+        }
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
