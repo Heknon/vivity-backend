@@ -1,6 +1,3 @@
-"""
-TODO: Implement Image class that interacts with AWS S3 storage for images.
-"""
 from __future__ import annotations
 
 import uuid
@@ -15,17 +12,18 @@ class Image:
     def __repr__(self):
         return self.image_id
 
-    def get_image(self, folder_name="") -> bytes:
-        return s3Bucket.get(folder_name + self.image_id)
+    def get_image(self) -> bytes:
+        return s3Bucket.get(self.image_id)
 
-    def delete_image(self, folder_name=""):
-        return s3Bucket.delete(folder_name + self.image_id)
+    def delete_image(self):
+        return s3Bucket.delete(self.image_id)
 
     @staticmethod
     def upload(image: bytes, key=None, folder_name: str = "") -> Image:
         if key is None:
             key = str(uuid.uuid4())
-        res = s3Bucket.upload(image, key, folder_name)
+        key = folder_name + key
+        res = s3Bucket.upload(image, key)
         if res is not None:
             raise RuntimeError("Failed to upload image.\n" + str(res))
 

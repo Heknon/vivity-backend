@@ -34,7 +34,8 @@ class UserData:
         if user.is_system_admin:
             result["is_system_admin"] = True
 
-        include_cart_item_models = include_cart_item_models if include_cart_item_models is not None and isinstance(include_cart_item_models, bool) else False
+        include_cart_item_models = include_cart_item_models if include_cart_item_models is not None and isinstance(include_cart_item_models,
+                                                                                                                   bool) else False
         if include_cart_item_models:
             cart_item_ids = list(map(lambda x: x.item_id, user.cart.items))
             result["cart_item_models"] = list(map(lambda item: item.__getstate__(), Item.get_items(*cart_item_ids)))
@@ -66,7 +67,8 @@ class UserData:
         user_res = user.update_fields(user_settings.email, user_settings.phone, unit, user_settings.currency_type)
         result = user_res.__getstate__()
 
-        include_cart_item_models = include_cart_item_models if include_cart_item_models is not None and isinstance(include_cart_item_models, bool) else False
+        include_cart_item_models = include_cart_item_models if include_cart_item_models is not None and isinstance(include_cart_item_models,
+                                                                                                                   bool) else False
         if include_cart_item_models:
             cart_item_ids = list(map(lambda x: x.item_id, user.cart.items))
             result["cart_item_models"] = list(map(lambda item: item.__getstate__(), Item.get_items(*cart_item_ids)))
@@ -89,7 +91,7 @@ class UserData:
         user: User = user
         pfp = None if pfp_data is None or len(pfp_data) == 0 else pfp_data
         if user.profile_picture is not None and user.profile_picture.image_id is not None:
-            user.profile_picture.delete_image("profiles/")
+            user.profile_picture.delete_image()
 
         image = Image.upload(pfp, folder_name="profiles/") if pfp is not None else None
         user.update_profile_picture(image)
@@ -105,7 +107,7 @@ class UserData:
             user: BlacklistJwtTokenAuth
     ):
         user: User = user
-        result = user.profile_picture.get_image("profiles/") if user.profile_picture.image_id is not None else None
+        result = user.profile_picture.get_image() if user.profile_picture.image_id is not None else None
         return result
 
     @staticmethod
@@ -114,7 +116,8 @@ class UserData:
     def add_to_favorites(
             user: BlacklistJwtTokenAuth,
             res: HttpResponse,
-            item_id: QueryParameter("item_id", str)
+            item_id: QueryParameter("item_id", str),
+            get_item_models: QueryParameter("get_item_models", bool)
     ):
         user: User = user
         if not isUserId(item_id):
@@ -126,9 +129,12 @@ class UserData:
         if item_id in user.liked_items:
             return user.liked_items
 
-        liked_items = user.liked_items.add_liked_items(item_id).liked_items
+        user.liked_items.add_liked_items(item_id)
         items_collection.update_one({"_id": item_id}, {"$inc": {"mtc.lks": 1}})
-        return liked_items
+
+        get_item_models = get_item_models if get_item_models is not None and isinstance(get_item_models, bool) else False
+
+        return Item.get_items(*user.liked_items._liked_items) if get_item_models else user.liked_items
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
@@ -136,7 +142,8 @@ class UserData:
     def remove_from_favorites(
             user: BlacklistJwtTokenAuth,
             res: HttpResponse,
-            item_id: QueryParameter("item_id", str)
+            item_id: QueryParameter("item_id", str),
+            get_item_models: QueryParameter("get_item_models", bool)
     ):
         user: User = user
         if not isUserId(item_id):
@@ -149,9 +156,11 @@ class UserData:
         if item_id not in user.liked_items:
             return user.liked_items
 
-        liked_items = user.liked_items.remove_liked_item(item_id).liked_items
+        user = user.liked_items.remove_liked_item(item_id)
         items_collection.update_one({"_id": item_id}, {"$inc": {"mtc.lks": -1}})
-        return liked_items
+        get_item_models = get_item_models if get_item_models is not None and isinstance(get_item_models, bool) else False
+
+        return Item.get_items(*user.liked_items._liked_items) if get_item_models else user.liked_items
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)

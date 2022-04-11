@@ -18,45 +18,6 @@ class CartController:
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
-    @app.put("/user/cart")
-    def add_cart_items(
-            jwt_res: BlacklistJwtTokenAuth,
-            body: RequestBody(),
-            res: HttpResponse
-    ):
-        user: User = jwt_res
-        result = user.cart.add_items(
-            *list(map(lambda json: CartItem(
-                item_id=json.get("item_id", None),
-                amount=json.get("amount", None),
-                modifiers_chosen=list(map(
-                    lambda mod_button: SelectedModificationButton(
-                        name=mod_button.get("name", None),
-                        selected_data=mod_button.get("selected_data", None),
-                        data_type=ModificationButtonDataType[mod_button.get("data_type", "").capitalize()],
-                    ),
-                    json.get("modifiers_chosen", None))
-                ),
-            ), body))
-        )
-        res.status = HttpStatus.CREATED
-        return result
-
-    @staticmethod
-    @BlacklistJwtTokenAuth(on_fail=auth_fail)
-    @app.patch("/user/cart")
-    def update_quantities(
-            jwt_res: BlacklistJwtTokenAuth,
-            body: RequestBody(),
-            res: HttpResponse
-    ):
-        user: User = jwt_res
-
-        quantities = {key: value for key, value in body.items() if isinstance(key, int) and isinstance(value, int)}
-        return user.cart.mass_update_quantity(quantities)
-
-    @staticmethod
-    @BlacklistJwtTokenAuth(on_fail=auth_fail)
     @app.delete("/user/cart")
     def delete_items(
             jwt_res: BlacklistJwtTokenAuth,

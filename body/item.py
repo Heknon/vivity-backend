@@ -29,8 +29,6 @@ class ItemUpdate:
             price: float,
             brand: str,
             category: str,
-            add_tags: List[str],
-            remove_tags: List[str],
             tags: List[str],
             stock: int,
             modification_buttons: List[ModificationButton],
@@ -41,8 +39,6 @@ class ItemUpdate:
         self.price = price
         self.brand = brand
         self.category = category
-        self.add_tags = add_tags
-        self.remove_tags = remove_tags
         self.stock = stock
         self.modification_buttons = modification_buttons
         self.tags = tags

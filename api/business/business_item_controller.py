@@ -4,23 +4,42 @@ from bson import ObjectId
 from pymongo import ReturnDocument
 from web_framework_v2 import RequestBody, PathVariable, QueryParameter, HttpResponse, HttpStatus
 
+import database as database
 from body import ItemCreation, ItemUpdate
 from body import Review
-from database import Item, ItemStoreFormat, Business, BusinessUser, User, items_collection, ModificationButton, Image
-import database as database
+from database import Item, ItemStoreFormat, Business, BusinessUser, User, items_collection, ModificationButton, Image, s3Bucket
 from database.business.item.item_metrics import ItemMetrics
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
-from .. import app, auth_fail, REVIEW_IMAGE_AWS_FOLDER
+from .. import app, auth_fail, REVIEW_IMAGE_AWS_FOLDER, ITEM_IMAGE_AWS_FOLDER
 
 
 @app.get("/business/item")
 def get_items(
-        item_ids: QueryParameter("item_ids", list)
+        item_ids: QueryParameter("item_ids", list),
+        include_images: QueryParameter('include_images', bool)
 ):
     if not isinstance(item_ids, list):
         item_ids = [item_ids]
 
-    return Item.get_items(*list(map(lambda item_id: ObjectId(item_id), item_ids)))
+    items = Item.get_items(*list(map(lambda item_id: ObjectId(item_id), item_ids)))
+    include_images = include_images if include_images is not None and isinstance(include_images, bool) else False
+    if include_images is not None:
+        image_ids = []
+        for item in items:
+            for image in item.images:
+                image_ids.append(ITEM_IMAGE_AWS_FOLDER + image.image_id)
+
+        images = {}
+        for key, image in s3Bucket.fetch_all(*image_ids):
+            images[key] = image
+
+        for item in items:
+            sorted_images = []
+            for image in item.images:
+                sorted_images.append(images.get(image, None))
+            item.images = sorted_images
+
+    return items
 
 
 @BusinessJwtTokenAuth(on_fail=auth_fail)
@@ -206,13 +225,7 @@ def update_item(
         res.status = HttpStatus.UNAUTHORIZED
         return
 
-    add_tags = set(item_update_data.add_tags if item_update_data.add_tags is not None else [])
-    remove_tags = set(item_update_data.remove_tags if item_update_data.remove_tags is not None else [])
-
-    add_tags = list(filter(lambda tag: tag not in remove_tags, add_tags))
-    remove_tags = list(filter(lambda tag: tag not in add_tags, remove_tags))
-    tags = set(item_update_data.tags + add_tags)
-    tags = list(filter(lambda tag: tag.lower().strip() not in remove_tags, tags))
+    tags = list(map(lambda tag: tag.lower().strip(), set(item_update_data.tags))) if item_update_data.tags is not None else None
 
     item = item.update_fields(
         title=item_update_data.title.strip(),

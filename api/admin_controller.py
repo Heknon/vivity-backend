@@ -1,8 +1,10 @@
+import base64
+
 from bson import ObjectId
 from web_framework_v2 import RequestBody, HttpResponse, HttpStatus, QueryParameter
 
 from api import auth_fail, app
-from database import User, Business, unapproved_businesses_collection
+from database import User, Business, unapproved_businesses_collection, s3Bucket
 from security import BlacklistJwtTokenAuth
 
 
@@ -21,8 +23,20 @@ class AdminController:
             return
 
         get_images = get_images if get_images is not None and isinstance(get_images, bool) else False
-        businesses = list(
-            map(lambda x: Business.get_db_repr(Business.document_repr_to_object(x), True, get_images), unapproved_businesses_collection.find()))
+        businesses = list(map(lambda x: Business.document_repr_to_object(x), unapproved_businesses_collection.find()))
+        if get_images:
+            image_id_business_map = {}
+            image_keys = []
+            for business in businesses:
+                image_keys.append(business.owner_id_card.image_id)
+                image_id_business_map[business.owner_id_card.image_id] = business
+
+            for key, image in s3Bucket.fetch_all(*image_keys):
+                image_id_business_map[key].owner_id_card = base64.b64encode(image).decode('utf-8')
+        else:
+            for business in businesses:
+                business.owner_id_card = None
+
         return businesses
 
     @staticmethod

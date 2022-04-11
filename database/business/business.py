@@ -329,7 +329,7 @@ class Business(DocumentObject):
         return businesses_collection.count_documents({"_id": _id}, limit=1) == 1
 
     @staticmethod
-    def get_db_repr(business: Business, get_long_names: bool = False, get_image=False):
+    def get_db_repr(business: Business, get_long_names: bool = False):
         res = {value: getattr(business, key) for key, value in Business.LONG_TO_SHORT.items()}
 
         res["loc"] = Location.get_db_repr(res.get('loc'), get_long_names) if res.get('loc', None) is not None else None
@@ -341,9 +341,6 @@ class Business(DocumentObject):
         res["mtc"] = metrics_mod.BusinessMetrics.get_db_repr(res['mtc'], get_long_names)
 
         if get_long_names:
-            if get_image:
-                res["oic"] = base64.b64encode(business.owner_id_card.get_image("business_ids/")).decode('utf-8')
-
             res["_id"] = str(business._id)
             res = {business.lengthen_field_name(key): value for key, value in res.items()}
 
