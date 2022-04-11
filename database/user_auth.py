@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import time
 
@@ -11,6 +12,7 @@ import database.user.user as user_module
 from database import DocumentObject, user_auth_collection
 
 
+@dataclasses.dataclass
 class UserAuth(DocumentObject):
     LONG_TO_SHORT = {
         "_id": "_id",
@@ -190,7 +192,7 @@ class UserAuth(DocumentObject):
 
     @staticmethod
     def is_otp_secret(secret: str) -> bool:
-        if secret is None or not isinstance(secret, str):
+        if secret is None or not isinstance(secret, str) or len(secret) != 32:
             return False
 
         try:

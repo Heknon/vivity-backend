@@ -1,11 +1,11 @@
 import base64
+import logging
 import os
 
-from botocore.exceptions import ClientError
-from web_framework_v2 import QueryParameter
+from web_framework_v2 import QueryParameter, RequestBody, HttpResponse, HttpStatus
 
-from api import app, auth_fail
-from database import Image
+from api import app, auth_fail, ITEM_IMAGE_AWS_FOLDER, REVIEW_IMAGE_AWS_FOLDER, PROFILE_PICTURE_AWS_FOLDER
+from database import Image, s3Bucket, User
 from security import BlacklistJwtTokenAuth
 
 
@@ -36,29 +36,47 @@ class AssetsController:
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
-    @app.get("/image/multi", error_handler=image_error_handler)
+    @app.post("/image/multi", error_handler=image_error_handler)
     def get_image(
-            user: BlacklistJwtTokenAuth,
-            image_ids: QueryParameter("image_ids"),
-            folder_name: QueryParameter("folder_name") = ""
+            raw_user: BlacklistJwtTokenAuth,
+            images: RequestBody(),
+            response: HttpResponse,
     ):
-        if image_ids is None:
+        user: User = raw_user
+        allowed_routes = {ITEM_IMAGE_AWS_FOLDER, PROFILE_PICTURE_AWS_FOLDER, REVIEW_IMAGE_AWS_FOLDER}
+
+        if not isinstance(images, list):
+            response.status = HttpStatus.BAD_REQUEST
+            return {
+                'error': "Must must payload of type list"
+            }
+
+        if images is None or len(images) == 0:
+            response.status = HttpStatus.BAD_REQUEST
             return {}
 
-        if not isinstance(image_ids, list):
-            image_ids = [image_ids]
+        unique_image_list = list(set(images))
+        images = []
+        for image in unique_image_list:
+            split = image.split("/")
+            contains = False
+            for split_item in split:
+                if split_item + '/' in allowed_routes:
+                    contains = True
+                    break
 
-        images = dict()
+            if contains or user.is_system_admin:
+                images.append(image)
 
-        for image_id in image_ids:
-            if image_id is None:
-                continue
+        result = {}
 
-            try:
-                images[image_id] = base64.b64encode(Image(folder_name + image_id).get_image()).decode('utf-8')
-            except ClientError:
-                continue
+        try:
+            for key, data in s3Bucket.fetch_all(*images):
+                result[key] = base64.b64encode(data).decode('utf-8')
 
-        if "" in images:
-            del images[""]
-        return images
+            return result
+        except Exception as e:
+            logging.exception(e)
+            return {
+                'error': e
+            }

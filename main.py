@@ -4,6 +4,7 @@ import signal
 import sys
 
 import api  # must import to register package and execute its code.
+from database import s3Bucket
 
 logger = logging.getLogger(__name__)
 

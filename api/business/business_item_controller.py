@@ -1,3 +1,5 @@
+import base64
+
 from bson import ObjectId
 from pymongo import ReturnDocument
 from web_framework_v2 import RequestBody, PathVariable, QueryParameter, HttpResponse, HttpStatus
@@ -5,20 +7,12 @@ from web_framework_v2 import RequestBody, PathVariable, QueryParameter, HttpResp
 from body import ItemCreation, ItemUpdate
 from body import Review
 from database import Item, ItemStoreFormat, Business, BusinessUser, User, items_collection, ModificationButton, Image
+import database as database
 from database.business.item.item_metrics import ItemMetrics
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
-from .. import app, auth_fail
+from .. import app, auth_fail, REVIEW_IMAGE_AWS_FOLDER
 
 
-@BlacklistJwtTokenAuth(on_fail=auth_fail)
-@app.get("/business/{business_id}/item")
-def get_items(
-        item_ids: QueryParameter("item_ids", list)
-):
-    return Item.get_items(item_ids)
-
-
-@BlacklistJwtTokenAuth(on_fail=auth_fail)
 @app.get("/business/item")
 def get_items(
         item_ids: QueryParameter("item_ids", list)
@@ -126,7 +120,7 @@ def swap_image_of_item(
 ):
     user: BusinessUser = token_data
 
-    if not isinstance(index, int):
+    if index is not None and not isinstance(index, int):
         return {
             "error": "must supply query parameter 'index' as an integer"
         }
@@ -139,12 +133,17 @@ def swap_image_of_item(
 
     item_id = ObjectId(item_id)
     item = Item.get_item(item_id)
-    if index is None:
-        index = len(item.images)
-
     if item.business_id != user.business_id:
         res.status = HttpStatus.UNAUTHORIZED
         return
+
+    if index is None:
+        index = len(item.images)
+    elif index > len(item.images):
+        res.status = HttpStatus.BAD_REQUEST
+        return {
+            f"Can set images in index range of 0-{len(item.images)}"
+        }
 
     result = Image.upload(image, folder_name="items/")
     if result.image_id is None:
@@ -152,9 +151,6 @@ def swap_image_of_item(
         return {
             "error": "failed"
         }
-
-    if index < len(item.images):
-        item.images[index].delete_image("items/")
 
     return item.add_image(result, index)
 
@@ -246,18 +242,15 @@ def delete_item(
     Item.delete_item(item_id)
     Business.get_business_by_id(user.business_id).remove_item(item_id)
     res.status = HttpStatus.NO_CONTENT
-    return
+    return {
+        "success": True
+    }
 
 
 """ITEM REVIEWS"""
 
 
-@BlacklistJwtTokenAuth(on_fail=auth_fail)
-@app.get("/business/{business_id}/item/{item_id}/review")
-def get_item_reviews(
-        item_id: PathVariable("item_id")
-):
-    return Item.get_item(item_id).reviews
+# TODO: Remove business sensitive data for normal users
 
 
 @BlacklistJwtTokenAuth(on_fail=auth_fail)
@@ -272,16 +265,26 @@ def add_item_review(
     review: Review = review_data
     user: User = token_data
 
-    Item.get_item(item_id).add_review(Review(
+    imgs = []
+    for image in review.images if review.images is not None else []:
+        data = base64.b64decode(image)
+        if len(data) < 100:
+            continue
+
+        img = Image.upload(data, REVIEW_IMAGE_AWS_FOLDER)
+        imgs.append(img)
+
+    item = Item.get_item(item_id).add_review(database.Review(
         poster_id=user.id,
-        pfp_id=user.profile_picture.image_id,
+        pfp_image=user.profile_picture,
         poster_name="" if anonymous else user.name,
         rating=review.rating,
         text_content=review.text_content,
-        image_ids=review.image_ids
+        images=list(map(lambda x: x.image_id, imgs))
     ))
 
     res.status = HttpStatus.CREATED
+    return item
 
 
 @BlacklistJwtTokenAuth()
@@ -292,5 +295,6 @@ def delete_item_review(
         res: HttpResponse
 ):
     user: User = token_data
-    Item.get_item(item_id).remove_review(user.id)
+    item = Item.get_item(item_id).remove_review(user.id)
     res.status = HttpStatus.NO_CONTENT
+    return item

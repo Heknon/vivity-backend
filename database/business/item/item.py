@@ -104,6 +104,7 @@ class Item(DocumentObject):
 
     def add_image(self, image: Image, index: int) -> Item:
         doc: dict
+
         if index < len(self.images):
             query = {"$set": {f"im.{index}": image.image_id}}
             if len(self.images) == 0:

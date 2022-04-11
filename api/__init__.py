@@ -24,6 +24,11 @@ JwtSecurity.set_refresh_key(
     )
 )
 
+REVIEW_IMAGE_AWS_FOLDER = "reviews/"
+ITEM_IMAGE_AWS_FOLDER = "items/"
+PROFILE_PICTURE_AWS_FOLDER = "profiles/"
+BUSINESS_OWNER_ID_AWS_FOLDER = "business_ids/"
+
 
 def error_handler(error: Exception, traceback: str, req: HttpRequest, res: HttpResponse, path_variables: dict):
     logging.exception(error)

@@ -1,3 +1,4 @@
+import base64
 from typing import Union
 
 from bson import ObjectId
@@ -5,7 +6,7 @@ from web_framework_v2 import RequestBody, QueryParameter, ContentType, HttpRespo
 
 from api import auth_fail
 from body import UserSettings, PaymentData
-from database import User, BusinessUser, Image, items_collection, Unit
+from database import User, BusinessUser, Image, items_collection, Unit, Item, Business
 from security import BlacklistJwtTokenAuth
 from .. import app
 
@@ -20,15 +21,25 @@ class UserData:
     @app.get("/user")
     def get_user_data(
             user: BlacklistJwtTokenAuth,
+            include_cart_item_models: QueryParameter("include_cart_item_models", bool),
+            include_business: QueryParameter("include_business", bool),
     ):
         user: Union[User, BusinessUser] = user
         result = user.__getstate__()
 
-        if type(user) is BusinessUser:
-            result["business_id"] = str(user.business_id)
+        include_business = include_business if include_business is not None and isinstance(include_business, bool) else False
+        if type(user) is BusinessUser and include_business:
+            result['business'] = Business.get_business_by_id(user.business_id).__getstate__()
 
         if user.is_system_admin:
             result["is_system_admin"] = True
+
+        include_cart_item_models = include_cart_item_models if include_cart_item_models is not None and isinstance(include_cart_item_models, bool) else False
+        if include_cart_item_models:
+            cart_item_ids = list(map(lambda x: x.item_id, user.cart.items))
+            result["cart_item_models"] = list(map(lambda item: item.__getstate__(), Item.get_items(*cart_item_ids)))
+
+        result['profile_picture'] = base64.b64encode(user.profile_picture.get_image('profiles/'))
 
         return result
 
@@ -39,6 +50,8 @@ class UserData:
             user: BlacklistJwtTokenAuth,
             user_settings: RequestBody(UserSettings),
             response: HttpResponse,
+            include_cart_item_models: QueryParameter("include_cart_item_models", bool),
+            include_business: QueryParameter("include_business", bool),
     ):
         user: Union[User, BusinessUser] = user
         user_settings: UserSettings = user_settings
@@ -51,12 +64,20 @@ class UserData:
 
         unit = Unit._value2member_map_[user_settings.unit] if user_settings.unit is not None else None
         user_res = user.update_fields(user_settings.email, user_settings.phone, unit, user_settings.currency_type)
-        return {
-            "options": user_res.options,
-            "email": user_res.email,
-            "phone": user_res.phone,
-            "access_token": user.build_access_token(sign=True)
-        }
+        result = user_res.__getstate__()
+
+        include_cart_item_models = include_cart_item_models if include_cart_item_models is not None and isinstance(include_cart_item_models, bool) else False
+        if include_cart_item_models:
+            cart_item_ids = list(map(lambda x: x.item_id, user.cart.items))
+            result["cart_item_models"] = list(map(lambda item: item.__getstate__(), Item.get_items(*cart_item_ids)))
+
+        include_business = include_business if include_business is not None and isinstance(include_business, bool) else False
+        if type(user) is BusinessUser and include_business:
+            result['business'] = Business.get_business_by_id(user.business_id).__getstate__()
+
+        result['profile_picture'] = base64.b64encode(user.profile_picture.get_image('profiles/'))
+
+        return result
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
@@ -71,10 +92,10 @@ class UserData:
             user.profile_picture.delete_image("profiles/")
 
         image = Image.upload(pfp, folder_name="profiles/") if pfp is not None else None
-        user = user.update_profile_picture(image)
+        user.update_profile_picture(image)
 
         return {
-            "image_id": user.profile_picture
+            "image": base64.b64encode(pfp_data)
         }
 
     @staticmethod

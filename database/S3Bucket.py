@@ -48,14 +48,9 @@ class S3Bucket(metaclass=Singleton):
             print(f"error accessing {key}")
             raise e
 
-    def fetch_all(self, keys):
-        print('wat')
-        keys = list(keys)
-        with futures.ProcessPoolExecutor(max_workers=5) as executor:
-            print("pre sub", keys)
+    def fetch_all(self, *keys):
+        with futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_key = {executor.submit(self.fetch, key): key for key in keys}
-
-            print("All URLs submitted.")
 
             for future in futures.as_completed(future_to_key):
 

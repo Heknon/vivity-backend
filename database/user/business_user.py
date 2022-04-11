@@ -84,3 +84,11 @@ class BusinessUser(user_module.User):
     @staticmethod
     def document_repr_to_object(doc, **kwargs) -> BusinessUser:
         return user_module.User.document_repr_to_object(doc)
+
+    def __getstate__(self):
+        res = super().__getstate__()
+        res['business_id'] = str(self.business_id)
+        return res
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)

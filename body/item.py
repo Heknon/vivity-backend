@@ -49,10 +49,7 @@ class ItemUpdate:
 
 
 class Review:
-    def __init__(self, poster_id: bytes, pfp_id: str, poster_name: str, rating: float, text_content: str, image_ids: List[str]):
-        self.poster_id = poster_id
-        self.pfp_id = pfp_id
-        self.poster_name = poster_name
+    def __init__(self, rating: float, text_content: str, images: List[str]):
         self.rating = rating
         self.text_content = text_content
-        self.image_ids = image_ids
+        self.images = images

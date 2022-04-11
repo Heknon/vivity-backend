@@ -13,13 +13,13 @@ def register_fail(req: HttpRequest, res: HttpResponse, data: AuthenticationResul
     res.status = HttpStatus.UNAUTHORIZED
     return json.dumps({
         "token": None,
-        "auth_result": data.value,
-        "auth_result_text": data.name,
+        "auth_status": data.value,
+        "auth_status_text": data.name,
     })
 
 
 @RegistrationTokenFactory(on_fail=register_fail)
-@app.post("/user/register")
+@app.post("/auth/register")
 def register(
         factory_result: RegistrationTokenFactory,
 ):
@@ -28,12 +28,12 @@ def register(
     return {
         "access_token": token,
         "refresh_token": refresh_token_from_access_token(token),
-        "auth_result": AuthenticationResult.Success.value
+        "auth_status": AuthenticationResult.Success.value
     }
 
 
 @LoginTokenFactory(on_fail=auth_fail)
-@app.post("/user/login")
+@app.post("/auth/login")
 def login(
         token_created: LoginTokenFactory,
 ):
@@ -46,25 +46,30 @@ def login(
 
 
 @BlacklistJwtTokenAuth(on_fail=auth_fail)
-@app.post("/user/logout")
+@app.post("/auth/logout")
 def logout(
-        body: RequestBody(),
+        raw_user: BlacklistJwtTokenAuth,
+        response: HttpResponse,
+        data: RequestBody()
 ):
-    if "access_token" not in body and "refresh_token" not in body:
+    raw_user: User = raw_user
+    if 'access_token' not in data or 'refresh_token' not in data:
+        response.status = HttpStatus.BAD_REQUEST
         return {
-            "error": "To logout you must pass in request body both or either 'access_token' and 'refresh_token'"
+            'error': 'Must pass "refresh_token" and "access_token" in request body'
         }
 
-    access_token = JwtSecurity.decode_access_token(body["access_token"]) if "access_token" in body else None
-    refresh_token = JwtSecurity.decode_access_token(body["refresh_token"]) if "refresh_token" in body else None
-    if access_token is not None:
-        access_token_blacklist.add_to_blacklist(body["access_token"])
+    refresh_token = data['refresh_token']
+    access_token = data['access_token']
 
-    if refresh_token is not None:
-        refresh_token_blacklist.add_to_blacklist(body["refresh_token"])
+    if JwtSecurity.decode_refresh_token(refresh_token):
+        refresh_token_blacklist.add_to_blacklist(refresh_token)
+
+    if JwtSecurity.decode_access_token(access_token):
+        access_token_blacklist.add_to_blacklist(access_token)
 
 
-@app.get("/jwt/refresh")
+@app.get("/auth/refresh")
 def refresh_access_token(token: QueryParameter(query_name="token"), res: HttpResponse):
     if token is None:
         res.status = HttpStatus.UNAUTHORIZED
@@ -92,7 +97,7 @@ def refresh_access_token(token: QueryParameter(query_name="token"), res: HttpRes
     }
 
 
-@app.get("/jwt/refresh/refresh")
+@app.get("/auth/refresh/refresh")
 def refresh_refresh_token(token: QueryParameter(query_name="token"), res: HttpResponse):
     if token is None:
         res.status = HttpStatus.UNAUTHORIZED
