@@ -4,7 +4,7 @@ from typing import Union
 from bson import ObjectId
 from web_framework_v2 import RequestBody, QueryParameter, ContentType, HttpResponse, HttpStatus
 
-from api import auth_fail
+from api import auth_fail, PROFILE_PICTURE_AWS_FOLDER
 from body import UserSettings, PaymentData
 from database import User, BusinessUser, Image, items_collection, Unit, Item, Business
 from security import BlacklistJwtTokenAuth
@@ -22,14 +22,9 @@ class UserData:
     def get_user_data(
             user: BlacklistJwtTokenAuth,
             include_cart_item_models: QueryParameter("include_cart_item_models", bool),
-            include_business: QueryParameter("include_business", bool),
     ):
         user: Union[User, BusinessUser] = user
         result = user.__getstate__()
-
-        include_business = include_business if include_business is not None and isinstance(include_business, bool) else False
-        if type(user) is BusinessUser and include_business:
-            result['business'] = Business.get_business_by_id(user.business_id).__getstate__()
 
         if user.is_system_admin:
             result["is_system_admin"] = True
@@ -40,7 +35,7 @@ class UserData:
             cart_item_ids = list(map(lambda x: x.item_id, user.cart.items))
             result["cart_item_models"] = list(map(lambda item: item.__getstate__(), Item.get_items(*cart_item_ids)))
 
-        result['profile_picture'] = base64.b64encode(user.profile_picture.get_image('profiles/'))
+        result['profile_picture'] = base64.b64encode(user.profile_picture.get_image())
 
         return result
 

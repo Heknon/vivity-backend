@@ -41,7 +41,7 @@ class CartController:
 
         cart_items = list(map(lambda json: CartItem(
             item_id=ObjectId(json.get("item_id", None)),
-            amount=json.get("amount", None),
+            quantity=json.get("amount", None),
             modifiers_chosen=list(map(
                 lambda mod_button: SelectedModificationButton(
                     name=mod_button.get("name", None),
@@ -52,6 +52,6 @@ class CartController:
             ),
         ), body))
 
-        result = user.cart.replace_items(cart_items)
+        result = user.cart.replace_items(cart_items).cart
         res.status = HttpStatus.CREATED
         return result

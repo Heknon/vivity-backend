@@ -12,7 +12,7 @@ from database.business.item import SelectedModificationButton
 class CartItem(DocumentObject):
     LONG_TO_SHORT = {
         "item_id": "iid",
-        "amount": "amt",
+        "quantity": "q",
         "modifiers_chosen": "mc",
     }
 
@@ -21,11 +21,11 @@ class CartItem(DocumentObject):
     def __init__(
             self,
             item_id: ObjectId,
-            amount: int,
+            quantity: int,
             modifiers_chosen: List[SelectedModificationButton]
     ):
         self.item_id = item_id
-        self.amount = amount
+        self.quantity = quantity
         self.modifiers_chosen = modifiers_chosen
 
     def __repr__(self):
