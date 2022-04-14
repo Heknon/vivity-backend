@@ -9,7 +9,7 @@ from . import app
 
 
 @BlacklistJwtTokenAuth(on_fail=auth_fail)
-@app.get("/user/explore")
+@app.get("/explore/item")
 def user_explore(
         token_data: BlacklistJwtTokenAuth,
         radius: QueryParameter("radius", int),
@@ -29,7 +29,7 @@ def user_explore(
 
 
 @BlacklistJwtTokenAuth(on_fail=auth_fail)
-@app.get("/business/explore")
+@app.get("/explore/business")
 def user_explore(
         token_data: BlacklistJwtTokenAuth,
         radius: QueryParameter("radius", int),
@@ -49,7 +49,7 @@ def user_explore(
 
 
 @BlacklistJwtTokenAuth(on_fail=auth_fail)
-@app.get("/user/search")
+@app.get("/search")
 def user_feed(
         token_data: BlacklistJwtTokenAuth,
         query: QueryParameter("query", str),
@@ -106,3 +106,5 @@ def parse_and_validate_query_location(location: List[str]):
 
     loc = validated_loc if len(validated_loc) == 2 else None
     return loc
+
+
