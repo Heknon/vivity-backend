@@ -49,7 +49,7 @@ class S3Bucket(metaclass=Singleton):
             raise e
 
     def fetch_all(self, *keys):
-        with futures.ThreadPoolExecutor(max_workers=5) as executor:
+        with futures.ThreadPoolExecutor(max_workers=10) as executor:
             future_to_key = {executor.submit(self.fetch, key): key for key in keys}
 
             for future in futures.as_completed(future_to_key):

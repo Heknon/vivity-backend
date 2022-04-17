@@ -153,7 +153,7 @@ class UserForgot:
         if email is None and _id is None:
             response.status = HttpStatus.BAD_REQUEST
             return {
-                "error": f"Must pass query parameter 'email' or '_id'"
+                "error": f"Must pass query parameter 'email' or 'id'"
             }
         using_id = _id is not None
         _id = ObjectId(_id) if using_id else None
@@ -184,7 +184,7 @@ class UserForgot:
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
-    @app.delete("/user/otp")
+    @app.delete("/auth/otp")
     def disable_otp(
             raw_user: BlacklistJwtTokenAuth,
             response: HttpResponse
