@@ -1,7 +1,5 @@
 from web_framework_v2 import RequestBody, HttpResponse, HttpStatus, QueryParameter
 
-from web_framework_v2 import RequestBody, HttpResponse, HttpStatus, QueryParameter
-
 from api import app, auth_fail
 from database import User, ShippingAddress
 from security import BlacklistJwtTokenAuth
@@ -40,10 +38,13 @@ class AddressController:
     ):
         user: User = jwt_res
         if index is None:
+            res.status = HttpStatus.BAD_REQUEST
             return {
                 'error': "Must pass query parameter 'index' of type 'int'"
             }
         if index < 0 or index >= len(user.shipping_addresses):
+            res.status = HttpStatus.BAD_REQUEST
+
             if len(user.shipping_addresses) == 0:
                 return {
                     'error': "There are no addresses to delete"

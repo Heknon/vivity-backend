@@ -20,7 +20,7 @@ class Item(DocumentObject):
         "business_name": "bnm",
         "price": "p",
         "images": "im",
-        "preview_image": "pi",
+        "preview_image_index": "pi",
         "reviews": "rs",
         "item_store_format": "isf",
         "brand": "br",
@@ -39,7 +39,7 @@ class Item(DocumentObject):
             business_name: str,
             price: float,
             images: List[Image],
-            preview_image: int,
+            preview_image_index: int,
             reviews: List[review_module.Review],
             item_store_format: isf_module.ItemStoreFormat,
             brand: str,
@@ -55,7 +55,7 @@ class Item(DocumentObject):
         self._id = _id
         self.price = price
         self.images = images
-        self.preview_image = preview_image
+        self.preview_image_index = preview_image_index
         self.reviews = reviews
         self.item_store_format = item_store_format
         self.brand = brand
@@ -224,7 +224,7 @@ class Item(DocumentObject):
 
         res["isf"] = isf_module.ItemStoreFormat.get_db_repr(res["isf"], get_long_names)
 
-        res["im"] = list(map(lambda image: image.image_id, res["im"]))
+        res["im"] = list(map(lambda image: image.image_id if image is Image else image, item.images))
         res["rs"] = list(map(lambda review: review_module.Review.get_db_repr(review, get_long_names), res.get("rs", [])))
         res['loc'] = Location.get_db_repr(res['loc'], get_long_names)
         res["mtc"] = metrics_mod.ItemMetrics.get_db_repr(res['mtc'], get_long_names)
@@ -240,7 +240,6 @@ class Item(DocumentObject):
     def document_repr_to_object(doc, **kwargs):
         args = {key: doc[value] for key, value in Item.LONG_TO_SHORT.items()}
 
-        args["preview_image"] = Image(args["preview_image"])
         args["item_store_format"] = \
             isf_module.ItemStoreFormat.document_repr_to_object(args["item_store_format"], business_id=args["business_id"], item_id=args["_id"])
 
@@ -294,7 +293,7 @@ class Item(DocumentObject):
                 business_name=business_name,
                 price=price,
                 images=images,
-                preview_image=preview_image,
+                preview_image_index=preview_image,
                 reviews=reviews,
                 item_store_format=isf_module.ItemStoreFormat(
                     item_id=_id,

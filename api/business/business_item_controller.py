@@ -11,6 +11,7 @@ from database import Item, ItemStoreFormat, Business, BusinessUser, User, items_
 from database.business.item.item_metrics import ItemMetrics
 from security.token_security import BusinessJwtTokenAuth, BlacklistJwtTokenAuth
 from .. import app, auth_fail, REVIEW_IMAGE_AWS_FOLDER, ITEM_IMAGE_AWS_FOLDER
+from ..utils import applyImagesToItems
 
 
 @app.get("/business/item")
@@ -23,21 +24,11 @@ def get_items(
 
     items = Item.get_items(*list(map(lambda item_id: ObjectId(item_id), item_ids)))
     include_images = include_images if include_images is not None and isinstance(include_images, bool) else False
-    if include_images is not None:
-        image_ids = []
+    if include_images is not None and include_images:
+        items = applyImagesToItems(*items)
+    else:
         for item in items:
-            for image in item.images:
-                image_ids.append(ITEM_IMAGE_AWS_FOLDER + image.image_id)
-
-        images = {}
-        for key, image in s3Bucket.fetch_all(*image_ids):
-            images[key] = image
-
-        for item in items:
-            sorted_images = []
-            for image in item.images:
-                sorted_images.append(images.get(image, None))
-            item.images = sorted_images
+            item.images = []
 
     return items
 

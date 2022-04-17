@@ -36,6 +36,7 @@ class OrderController:
             body: RequestBody(),
             res: HttpResponse
     ):
+        # TODO: change status only for owning business items
         user: BusinessUser = user_raw
         order_id = body.get('order_id', None)
         status = body.get('status', None)

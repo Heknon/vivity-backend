@@ -22,8 +22,8 @@ class S3Bucket(metaclass=Singleton):
             aws_secret_access_key=aws_secret_key
         )
 
-    def get(self, key: str, folder_prefix: str = ""):
-        return self.fetch(folder_prefix + key)
+    def get(self, key: str):
+        return self.fetch(key)
 
     def upload(self, data: bytes, key: str = None, content_type: str = "image/png"):
         if key is None:

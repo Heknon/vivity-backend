@@ -6,6 +6,7 @@ from api.api_utils import auth_fail
 from database import Item, items_collection, businesses_collection, Business, User
 from security import BlacklistJwtTokenAuth
 from . import app
+from .utils import applyImagesToItems
 
 
 @BlacklistJwtTokenAuth(on_fail=auth_fail)
@@ -25,7 +26,9 @@ def user_explore(
         }
 
     vicinity_items = search_radius_collection(loc, radius, items_collection)
-    return list(map(lambda doc: Item.document_repr_to_object(doc), vicinity_items))
+    items = list(map(lambda doc: Item.document_repr_to_object(doc), vicinity_items))
+    items = applyImagesToItems(*items)
+    return items
 
 
 @BlacklistJwtTokenAuth(on_fail=auth_fail)
@@ -69,7 +72,8 @@ def user_feed(
     }, {"score": {"$meta": "textScore"}})
 
     search_result = search_result.sort([("score", {"$meta": "textScore"})])
-    return list(map(lambda doc: Item.document_repr_to_object(doc), search_result))
+    items = list(map(lambda doc: Item.document_repr_to_object(doc), search_result))
+    return applyImagesToItems(*items)
 
 
 def search_radius_collection(

@@ -4,11 +4,12 @@ from typing import Union
 from bson import ObjectId
 from web_framework_v2 import RequestBody, QueryParameter, ContentType, HttpResponse, HttpStatus
 
-from api import auth_fail, PROFILE_PICTURE_AWS_FOLDER
+from api import auth_fail
 from body import UserSettings, PaymentData
-from database import User, BusinessUser, Image, items_collection, Unit, Item, Business
+from database import User, BusinessUser, Image, items_collection, Unit, Item
 from security import BlacklistJwtTokenAuth
 from .. import app
+from ..utils import applyImagesToItems
 
 
 class UserData:
@@ -29,13 +30,10 @@ class UserData:
         if user.is_system_admin:
             result["is_system_admin"] = True
 
-        include_cart_item_models = include_cart_item_models if include_cart_item_models is not None and isinstance(include_cart_item_models,
-                                                                                                                   bool) else False
-        if include_cart_item_models:
-            cart_item_ids = list(map(lambda x: x.item_id, user.cart.items))
-            result["cart_item_models"] = list(map(lambda item: item.__getstate__(), Item.get_items(*cart_item_ids)))
+        result["liked_items"] = applyImagesToItems(*Item.get_items(*user.liked_items._liked_items))
 
-        result['profile_picture'] = base64.b64encode(user.profile_picture.get_image())
+        result['profile_picture'] = base64.b64encode(user.profile_picture.get_image()).decode(
+            'utf-8') if user.profile_picture is not None and user.profile_picture.image_id is not None else None
 
         return result
 
@@ -46,8 +44,6 @@ class UserData:
             user: BlacklistJwtTokenAuth,
             user_settings: RequestBody(UserSettings),
             response: HttpResponse,
-            include_cart_item_models: QueryParameter("include_cart_item_models", bool),
-            include_business: QueryParameter("include_business", bool),
     ):
         user: Union[User, BusinessUser] = user
         user_settings: UserSettings = user_settings
@@ -62,23 +58,14 @@ class UserData:
         user_res = user.update_fields(user_settings.email, user_settings.phone, unit, user_settings.currency_type)
         result = user_res.__getstate__()
 
-        include_cart_item_models = include_cart_item_models if include_cart_item_models is not None and isinstance(include_cart_item_models,
-                                                                                                                   bool) else False
-        if include_cart_item_models:
-            cart_item_ids = list(map(lambda x: x.item_id, user.cart.items))
-            result["cart_item_models"] = list(map(lambda item: item.__getstate__(), Item.get_items(*cart_item_ids)))
-
-        include_business = include_business if include_business is not None and isinstance(include_business, bool) else False
-        if type(user) is BusinessUser and include_business:
-            result['business'] = Business.get_business_by_id(user.business_id).__getstate__()
-
-        result['profile_picture'] = base64.b64encode(user.profile_picture.get_image('profiles/'))
+        result["liked_items"] = applyImagesToItems(*Item.get_items(*user.liked_items._liked_items))
+        result['profile_picture'] = base64.b64encode(user.profile_picture.get_image()).decode('utf-8')
 
         return result
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
-    @app.post("/user/profile_picture", content_type=ContentType.text)
+    @app.post("/user/profile_picture")
     def update_profile_picture(
             user: BlacklistJwtTokenAuth,
             pfp_data: RequestBody(raw_format=True)
@@ -87,12 +74,16 @@ class UserData:
         pfp = None if pfp_data is None or len(pfp_data) == 0 else pfp_data
         if user.profile_picture is not None and user.profile_picture.image_id is not None:
             user.profile_picture.delete_image()
+            user.update_profile_picture(None)
+            return {
+                "image": None
+            }
 
         image = Image.upload(pfp, folder_name="profiles/") if pfp is not None else None
         user.update_profile_picture(image)
 
         return {
-            "image": base64.b64encode(pfp_data)
+            "image": base64.b64encode(pfp_data).decode('utf-8')
         }
 
     @staticmethod
@@ -122,14 +113,19 @@ class UserData:
             }
         item_id = ObjectId(item_id)
         if item_id in user.liked_items:
-            return user.liked_items
+            items = Item.get_items(*user.liked_items._liked_items) if get_item_models else user.liked_items
+            for item in items:
+                item.images = []
+            return items
 
         user.liked_items.add_liked_items(item_id)
         items_collection.update_one({"_id": item_id}, {"$inc": {"mtc.lks": 1}})
-
         get_item_models = get_item_models if get_item_models is not None and isinstance(get_item_models, bool) else False
 
-        return Item.get_items(*user.liked_items._liked_items) if get_item_models else user.liked_items
+        items = Item.get_items(*user.liked_items._liked_items) if get_item_models else user.liked_items
+        for item in items:
+            item.images = []
+        return items
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
@@ -149,13 +145,19 @@ class UserData:
 
         item_id = ObjectId(item_id)
         if item_id not in user.liked_items:
-            return user.liked_items
+            items = Item.get_items(*user.liked_items._liked_items) if get_item_models else user.liked_items
+            for item in items:
+                item.images = []
+            return items
 
         user = user.liked_items.remove_liked_item(item_id)
         items_collection.update_one({"_id": item_id}, {"$inc": {"mtc.lks": -1}})
         get_item_models = get_item_models if get_item_models is not None and isinstance(get_item_models, bool) else False
 
-        return Item.get_items(*user.liked_items._liked_items) if get_item_models else user.liked_items
+        items = Item.get_items(*user.liked_items._liked_items) if get_item_models else user.liked_items
+        for item in items:
+            item.images = []
+        return items
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)

@@ -14,7 +14,7 @@ class CartController:
             jwt_res: BlacklistJwtTokenAuth,
     ):
         user: User = jwt_res
-        return user.cart.get_full_items()
+        return user.cart
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)
@@ -34,14 +34,14 @@ class CartController:
     @app.post("/user/cart")
     def replace_cart_items(
             jwt_res: BlacklistJwtTokenAuth,
-            body: RequestBody(),
+            body: RequestBody(parameter_type=list),
             res: HttpResponse
     ):
         user: User = jwt_res
 
         cart_items = list(map(lambda json: CartItem(
             item_id=ObjectId(json.get("item_id", None)),
-            quantity=json.get("amount", None),
+            quantity=json.get("quantity", None),
             modifiers_chosen=list(map(
                 lambda mod_button: SelectedModificationButton(
                     name=mod_button.get("name", None),
