@@ -14,7 +14,7 @@ from .. import app
 logger = logging.getLogger(__name__)
 
 
-class UserForgot:
+class UserAuthController:
     @staticmethod
     @app.post("/user/forgot")
     def send_forgot_password_email(

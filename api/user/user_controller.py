@@ -22,7 +22,6 @@ class UserData:
     @app.get("/user")
     def get_user_data(
             user: BlacklistJwtTokenAuth,
-            include_cart_item_models: QueryParameter("include_cart_item_models", bool),
     ):
         user: Union[User, BusinessUser] = user
         result = user.__getstate__()

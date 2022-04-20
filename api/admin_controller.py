@@ -17,6 +17,13 @@ class AdminController:
             res: HttpResponse,
             get_images: QueryParameter("get_images", bool)
     ):
+        user: User = user_raw
+        if not user.is_system_admin:
+            res.status = HttpStatus.UNAUTHORIZED
+            return {
+                "error": "Admin route"
+            }
+
         return AdminController.get_businesses_from_collection(user_raw, res, unapproved_businesses_collection, get_images)
 
     @staticmethod
@@ -27,6 +34,13 @@ class AdminController:
             res: HttpResponse,
             get_images: QueryParameter("get_images", bool)
     ):
+        user: User = user_raw
+        if not user.is_system_admin:
+            res.status = HttpStatus.UNAUTHORIZED
+            return {
+                "error": "Admin route"
+            }
+
         return AdminController.get_businesses_from_collection(user_raw, res, businesses_collection, get_images)
 
     @staticmethod
@@ -41,7 +55,7 @@ class AdminController:
         if not user.is_system_admin:
             res.status = HttpStatus.UNAUTHORIZED
             return {
-                "error": "Must be admin"
+                "error": "Admin route"
             }
 
         approved = body.get('approved', None)
@@ -71,7 +85,7 @@ class AdminController:
             return
 
         get_images = get_images if get_images is not None and isinstance(get_images, bool) else False
-        businesses = list(map(lambda x: Business.document_repr_to_object(x), businesses_collection.find()))
+        businesses = list(map(lambda x: Business.document_repr_to_object(x), collection.find()))
         if get_images:
             image_id_business_map = {}
             image_keys = []

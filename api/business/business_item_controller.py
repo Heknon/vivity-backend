@@ -162,7 +162,7 @@ def swap_image_of_item(
             "error": "failed"
         }
 
-    return item.add_image(result, index)
+    return applyImagesToItems(item.add_image(result, index))[0]
 
 
 @BusinessJwtTokenAuth(on_fail=auth_fail)
@@ -195,8 +195,8 @@ def remove_image_from_item(
 
     image = item.images[index]
     item = item.remove_image(index)
-    image.delete_image("items/")
-    return item
+    image.delete_image()
+    return applyImagesToItems(item)[0]
 
 
 @BusinessJwtTokenAuth(on_fail=auth_fail)
