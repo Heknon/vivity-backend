@@ -81,6 +81,7 @@ def search_radius_collection(
         radius: float,
         collection
 ):
+    location = [location[1], location[0]]
     return collection.find({
         "loc": {
             "$nearSphere": {
