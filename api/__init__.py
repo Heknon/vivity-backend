@@ -44,7 +44,7 @@ app = Framework(
     static_folder="",
     static_url_path="",
     host=HOST,
-    port=20200,
+    port=80,
     log_level=logging.INFO,
     error_handler=error_handler
 )
