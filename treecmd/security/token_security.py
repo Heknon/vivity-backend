@@ -65,6 +65,11 @@ class LoginTokenFactory(JwtTokenFactory):
         email = request_body["email"].strip()
         password = request_body["password"]
 
+        if not VALIDATOR.validate(password):
+            return False, AuthenticationResult.PasswordInvalid, None
+        elif not validate_email(email):
+            return False, AuthenticationResult.EmailInvalid, None
+
         user_doc: dict | None = User.get_by_email(email)
 
         if user_doc is None:

@@ -5,8 +5,8 @@ from bson import ObjectId
 from web_framework_v2 import RequestBody, QueryParameter, ContentType, HttpResponse, HttpStatus
 
 from api import auth_fail
-from body import UserSettings
-from database import User, BusinessUser, Image, items_collection, Unit, Item, Order
+from body import UserSettings, PaymentData
+from database import User, BusinessUser, Image, items_collection, Unit, Item
 from security import BlacklistJwtTokenAuth
 from .. import app
 from ..utils import applyImagesToItems
@@ -33,8 +33,6 @@ class UserData:
 
         result['profile_picture'] = base64.b64encode(user.profile_picture.get_image()).decode(
             'utf-8') if user.profile_picture is not None and user.profile_picture.image_id is not None else None
-
-        result['order_history'] = list(map(lambda order: order.__getstate__(), user.order_history.get_orders()))
 
         return result
 
@@ -159,6 +157,8 @@ class UserData:
         for item in items:
             item.images = []
         return items
+
+
 
 
 def isUserId(s: str) -> bool:
