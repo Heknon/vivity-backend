@@ -1,33 +1,42 @@
 from typing import List
 
+from database.business.item.selected_modification_button import SelectedModificationButton
+from database.user.shipping_address import ShippingAddress
+
 
 class OrderItem:
     def __init__(
             self,
-            image_id,
+            item_id: bytes,
             business_id: bytes,
-            item_id: int,
-            title: str,
-            subtitle: str,
-            description: str,
-            price: float
+            amount: int,
+            price: float,
+            selected_modifiers: List[SelectedModificationButton]
     ):
-        self.image_id = image_id
         self.business_id = business_id
         self.item_id = item_id
-        self.title = title
-        self.subtitle = subtitle
-        self.description = description
+        self.amount = amount
         self.price = price
+        self.selected_modifiers = selected_modifiers
 
 
 class Order:
     def __init__(
             self,
-            purchase_date: str,
+            subtotal: float,
+            shipping_cost: float,
+            cupon_discount: float,
+            total: float,
+            cupon: str,
+            shipping_address: ShippingAddress,
             items: List[OrderItem]
     ):
-        self.purchase_date = purchase_date
+        self.subtotal = subtotal
+        self.shipping_cost = shipping_cost
+        self.cupon_discount = cupon_discount
+        self.total = total
+        self.cupon = cupon
+        self.shipping_address = shipping_address
         self.items = items
 
 

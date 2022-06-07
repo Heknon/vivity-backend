@@ -10,7 +10,6 @@ from pymongo import ReturnDocument
 import database.user.shipping_address as sa_module
 from database import DocumentObject, orders_collection
 from .order_item import OrderItem
-from database.user.order.order_status import OrderStatus
 
 
 class Order(DocumentObject):
@@ -48,8 +47,22 @@ class Order(DocumentObject):
         self.items = items
 
     @staticmethod
-    def get_orders(order_ids: List[ObjectId]):
-        return list(map(lambda doc: Order.document_repr_to_object(doc), orders_collection.find({"_id": {"$in": order_ids}})))
+    def get_orders(order_ids: List[ObjectId], business_id: ObjectId):
+        orders = list(map(lambda doc: Order.document_repr_to_object(doc), orders_collection.find({"_id": {"$in": order_ids}})))
+
+        for order in orders:
+            items = []
+            for item in order.items:
+                if item.business_id == business_id:
+                    items.append(item)
+
+            order.items = items
+
+        return orders
+
+    @staticmethod
+    def get_order(order_id: ObjectId):
+        return Order.document_repr_to_object(orders_collection.find_one({"_id": order_id}))
 
     @staticmethod
     def save(order: Order):
@@ -109,3 +122,7 @@ class Order(DocumentObject):
 
     def lengthen_field_name(self, field_name):
         return Order.SHORT_TO_LONG.get(field_name, None)
+
+    @property
+    def id(self):
+        return self._id

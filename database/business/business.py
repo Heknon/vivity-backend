@@ -170,6 +170,16 @@ class Business(DocumentObject):
             )
         )
 
+    @staticmethod
+    def add_order_by_id(business_id: ObjectId, order_id: ObjectId) -> Business:
+        return Business.document_repr_to_object(
+            businesses_collection.find_one_and_update(
+                {"_id": business_id},
+                {"$addToSet": {f"ord": order_id}},
+                return_document=ReturnDocument.AFTER
+            )
+        )
+
     def remove_order(self, order_id: ObjectId) -> Business:
         """
         Removes order from business orders NOT from orders collection.
