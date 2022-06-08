@@ -14,4 +14,5 @@ class AuthenticationResult(Enum):
     EmailInvalid = 9
     WrongOTP = 10
     TooManyAttempts = 11
+    OTPBlocked = 12
 

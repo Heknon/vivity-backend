@@ -85,6 +85,9 @@ class LoginTokenFactory(JwtTokenFactory):
         elif not correct_password:
             user_auth.register_failed_attempt(_id)
             return False, AuthenticationResult.PasswordIncorrect, None
+        elif user_auth.was_otp_used(otp):
+            user_auth.register_failed_attempt(_id)
+            return False, AuthenticationResult.OTPBlocked, None
         elif not user_auth.is_correct_otp(otp):
             user_auth.register_failed_attempt(_id)
             return False, AuthenticationResult.WrongOTP, None
