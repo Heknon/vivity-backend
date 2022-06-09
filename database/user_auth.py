@@ -60,8 +60,8 @@ class UserAuth(DocumentObject):
 
     def was_otp_used(self, otp: str):
         doc = user_auth_collection.find_one({"_id": self._id})
-        botp = doc['botp']
-        botp_t = doc['botp_t']
+        botp = doc.get("botp", '')
+        botp_t = doc.get("botp_t", 0)
         t_now = time.time()
 
         return botp_t + 60 > t_now and botp == otp

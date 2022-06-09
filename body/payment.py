@@ -28,7 +28,7 @@ class Order:
             cupon_discount: float,
             total: float,
             cupon: str,
-            shipping_address: ShippingAddress,
+            address: ShippingAddress,
             items: List[OrderItem]
     ):
         self.subtotal = subtotal
@@ -36,7 +36,7 @@ class Order:
         self.cupon_discount = cupon_discount
         self.total = total
         self.cupon = cupon
-        self.shipping_address = shipping_address
+        self.shipping_address = address
         self.items = items
 
 
@@ -46,11 +46,13 @@ class PaymentData:
             credit_card_number: str,
             year: int,
             month: int,
-            cvv: int,
-            cart: Order
+            cvv: str,
+            name: str,
+            order: Order
     ):
         self.credit_card_number = credit_card_number
         self.year = year
         self.month = month
         self.cvv = cvv
-        self.cart = cart
+        self.name = name
+        self.cart = order

@@ -7,7 +7,7 @@ from web_framework_v2 import QueryParameter, RequestBody, HttpResponse, HttpStat
 from api import auth_fail, app
 from body import PaymentData
 from communication import Email
-from database import User, Order, orders_collection, BusinessUser, Business, Item, OrderItem
+from database import User, Order, orders_collection, BusinessUser, Business, Item, OrderItem, ShippingAddress
 from database.user import OrderStatus
 from security import BlacklistJwtTokenAuth, BusinessJwtTokenAuth
 
@@ -71,8 +71,10 @@ class OrderController:
             business_ids.add(frontend_item.business_id)
 
         # calculate cupon discount
+        db_cupon_discount = db_subtotal * (OrderController.get_cupon_discount(user, payment_data.cart.cupon, payment_data.cart.items, res) / 100)
 
         # calculate shipping
+        db_shipping = OrderController.get_shipping_cost(user, {"items": payment_data.cart.items, "sa": payment_data.cart.shipping_address}, res)
 
         frontend_total = payment_data.cart.total
         db_total = db_subtotal + db_shipping - db_cupon_discount
@@ -131,9 +133,31 @@ class OrderController:
         user.order_history.add_order(order.id)
 
         Email().send_order_success(user.email, order)
+        res.status = HttpStatus.CREATED
+        return order
+
+    @staticmethod
+    @BusinessJwtTokenAuth(on_fail=auth_fail)
+    @app.post("/business/order/shipping")
+    def get_shipping_cost(
+            user_raw: BusinessJwtTokenAuth,
+            body: RequestBody(),
+            res: HttpResponse
+    ):
         return {
-            "processed": True,
-            "order": order
+            'cost': 0
+        }
+
+    @staticmethod
+    @BusinessJwtTokenAuth(on_fail=auth_fail)
+    @app.get("/business/order/cupon")
+    def get_cupon_discount(
+            user_raw: BusinessJwtTokenAuth,
+            cupon: QueryParameter("cupon"),
+            res: HttpResponse
+    ):
+        return {
+            'discount': 0
         }
 
     @staticmethod
