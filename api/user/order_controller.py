@@ -7,7 +7,7 @@ from web_framework_v2 import QueryParameter, RequestBody, HttpResponse, HttpStat
 from api import auth_fail, app
 from body import PaymentData
 from communication import Email
-from database import User, Order, orders_collection, BusinessUser, Business, Item, OrderItem, ShippingAddress
+from database import User, Order, orders_collection, BusinessUser, Business, Item, OrderItem, SelectedModificationButton, ShippingAddress
 from database.user import OrderStatus
 from security import BlacklistJwtTokenAuth, BusinessJwtTokenAuth
 
@@ -43,40 +43,43 @@ class OrderController:
         payment_data: PaymentData = payment_data
         user: User = token_data
 
-        db_items = Item.get_items(*map(lambda x: x.item_id, payment_data.cart.items))
+        items = list(map(lambda x: ObjectId(x['item_id']), payment_data.order['items']))
+        print(items)
+        db_items = Item.get_items(*items)
         db_subtotal = 0
         frontend_subtotal = 0
 
         db_cupon_discount = 0
-        frontend_cupon_discount = payment_data.cart.cupon_discount
+        frontend_cupon_discount = payment_data.order['cupon_discount']
 
         db_shipping = 0
-        frontend_shipping = payment_data.cart.shipping_cost
+        frontend_shipping = payment_data.order['shipping_cost']
         business_ids = set()
 
-        for i in range(len(payment_data.cart.items)):
+        for i in range(len(payment_data.order['items'])):
             db_item = db_items[i]
-            frontend_item = payment_data.cart.items[i]
+            frontend_item = payment_data.order['items'][i]
 
-            if db_item.price != frontend_item.price:
+            if db_item.price != frontend_item['price']:
                 res.status = HttpStatus.UNAUTHORIZED
                 return {
                     "error": "Cannot process payment",
                     "reason": "Item costs changed while going through checkout"
                 }
 
-            db_subtotal += db_item.price * frontend_item.amount
-            frontend_subtotal += frontend_item.price * frontend_item.amount
+            db_subtotal += db_item.price * frontend_item['amount']
+            frontend_subtotal += frontend_item['price'] * frontend_item['amount']
 
-            business_ids.add(frontend_item.business_id)
+            business_ids.add(ObjectId(frontend_item['business_id']))
 
         # calculate cupon discount
-        db_cupon_discount = db_subtotal * (OrderController.get_cupon_discount(user, payment_data.cart.cupon, payment_data.cart.items, res) / 100)
+        db_cupon_discount = db_subtotal * (OrderController.get_cupon_discount(user, payment_data.order['cupon'], res)['discount'] / 100)
 
         # calculate shipping
-        db_shipping = OrderController.get_shipping_cost(user, {"items": payment_data.cart.items, "sa": payment_data.cart.shipping_address}, res)
+        db_shipping = OrderController.get_shipping_cost(user, {"items": payment_data.order['items'], "sa": payment_data.order['address']}, res)[
+            'cost']
 
-        frontend_total = payment_data.cart.total
+        frontend_total = payment_data.order['total']
         db_total = db_subtotal + db_shipping - db_cupon_discount
         if db_subtotal != frontend_subtotal:
             res.status = HttpStatus.UNAUTHORIZED
@@ -106,14 +109,21 @@ class OrderController:
                 "reason": "Total cost changed while going through checkout"
             }
 
-        order_items = list(map(lambda item: OrderItem(
-            item_id=item.id,
-            business_id=item.business_id,
-            amount=item.amount,
-            price=item.price,
-            status=OrderStatus.Processing,
-            selected_modifiers=item.selected_modifiers
-        ), payment_data.cart.items))
+        order_items = []
+        for item in payment_data.order['items']:
+            item_dict = dict()
+
+            for field_name, value in item.items():
+                print(item)
+                field_name = OrderItem.LONG_TO_SHORT[field_name]
+
+                if field_name == 'sm':
+                    item_dict[field_name] = [{SelectedModificationButton.LONG_TO_SHORT[name]: val for name, val in selected_modifier.items()} for
+                                             selected_modifier in value]
+                else:
+                    item_dict[field_name] = value
+
+            order_items.append(OrderItem.document_repr_to_object(item_dict))
 
         order = Order(
             _id=ObjectId(),
@@ -122,7 +132,7 @@ class OrderController:
             shipping_cost=db_shipping,
             cupon_discount=db_cupon_discount,
             total=db_total,
-            shipping_address=payment_data.cart.shipping_address,
+            shipping_address=ShippingAddress.document_repr_to_object({ShippingAddress.LONG_TO_SHORT[field_name]: value for field_name, value in payment_data.order['address'].items()}, address_index=0),
             items=order_items
         )
 
@@ -132,7 +142,6 @@ class OrderController:
 
         user.order_history.add_order(order.id)
 
-        Email().send_order_success(user.email, order)
         res.status = HttpStatus.CREATED
         return order
 
@@ -145,7 +154,7 @@ class OrderController:
             res: HttpResponse
     ):
         return {
-            'cost': 0
+            'cost': 1.25
         }
 
     @staticmethod

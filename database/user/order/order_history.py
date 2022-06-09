@@ -22,7 +22,8 @@ class OrderHistory:
         return OrderHistory.document_repr_to_object(
             users_collection.find_one_and_update(
                 {"_id": self.user_id}, {"$addToSet": {"odh": order_id}}, return_document=ReturnDocument.AFTER
-            )
+            ),
+            _id=self.user_id
         )
 
     def remove_order(self, order_id: ObjectId) -> OrderHistory:

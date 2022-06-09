@@ -14,7 +14,7 @@ from singleton import Singleton
 
 class Email(metaclass=Singleton):
     def __init__(self):
-        self.yag: yagmail.SMTP = yagmail.SMTP("vivity.noreply@gmail.com", password=os.getenv("noreply_password"))
+        self.yag: yagmail.SMTP = yagmail.SMTP("vivity.noreply2@gmail.com", password=os.getenv("noreply_password"))
 
     def send_email(self, to: str, subject: str, body: str = None, html: str = None, image: str = None):
         send_arr = list(filter(lambda x: x is not None, [body, html, image]))

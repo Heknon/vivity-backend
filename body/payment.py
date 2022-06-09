@@ -36,7 +36,7 @@ class Order:
         self.cupon_discount = cupon_discount
         self.total = total
         self.cupon = cupon
-        self.shipping_address = address
+        self.address = address
         self.items = items
 
 
@@ -55,4 +55,4 @@ class PaymentData:
         self.month = month
         self.cvv = cvv
         self.name = name
-        self.cart = order
+        self.order = order

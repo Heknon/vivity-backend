@@ -79,7 +79,7 @@ class Order(DocumentObject):
         saved = Order.get_db_repr(order_save)
         Order.document_repr_to_object(orders_collection.find_one_and_update(
             {"_id": order_save._id},
-            saved,
+            {"$set": saved},
             upsert=True,
             return_document=ReturnDocument.AFTER
         ))
