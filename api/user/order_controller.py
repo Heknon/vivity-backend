@@ -156,7 +156,7 @@ class OrderController:
             cost += item.price * item.amount * 0.01
 
         return {
-            'cost': cost
+            'cost': float(cost)
         }
 
     @staticmethod
