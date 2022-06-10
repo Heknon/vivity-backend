@@ -8,7 +8,7 @@ from web_framework_v2 import QueryParameter, RequestBody, HttpResponse, HttpStat
 from api import auth_fail, app
 from body import PaymentData
 from database import User, Order, orders_collection, BusinessUser, Business, Item, OrderItem, SelectedModificationButton, ShippingAddress, \
-    cupon_collection
+    cupon_collection, ShippingMethod
 from database.user import OrderStatus
 from security import BlacklistJwtTokenAuth, BusinessJwtTokenAuth
 
@@ -49,6 +49,8 @@ class OrderController:
         db_subtotal = 0
         frontend_subtotal = 0
 
+        shipping_method: ShippingMethod = ShippingMethod._value2member_map_[payment_data.order['shipping_method']]
+
         db_cupon_discount = 0
         frontend_cupon_discount = payment_data.order['cupon_discount']
 
@@ -77,8 +79,9 @@ class OrderController:
         frontend_cupon_discount *= frontend_subtotal
 
         # calculate shipping
-        db_shipping: float = OrderController.get_shipping_cost(user, {"items": payment_data.order['items'], "sa": payment_data.order['address']}, res)[
-            'cost']
+        db_shipping: float = \
+            OrderController.get_shipping_cost(user, {"items": payment_data.order['items'], "sa": payment_data.order['address']}, res)[
+                'cost'] if shipping_method == ShippingMethod.delivery else 0
 
         frontend_total = payment_data.order['total']
         db_total = round(db_subtotal + db_shipping - db_cupon_discount, 3)
@@ -104,6 +107,7 @@ class OrderController:
             }
 
         elif db_total != round(frontend_total, 3):
+            print(db_total, frontend_total)
             res.status = HttpStatus.UNAUTHORIZED
             return {
                 "error": "Cannot process payment",
@@ -120,8 +124,10 @@ class OrderController:
             cupon_discount=db_cupon_discount,
             total=db_total,
             shipping_address=ShippingAddress.document_repr_to_object(
-                {ShippingAddress.LONG_TO_SHORT[field_name]: value for field_name, value in payment_data.order['address'].items()}, address_index=0),
-            items=order_items
+                {ShippingAddress.LONG_TO_SHORT[field_name]: value for field_name, value in payment_data.order['address'].items()}, address_index=0) if
+            payment_data.order['address'] is not None else None,
+            items=order_items,
+            shipping_method=shipping_method
         )
 
         order = Order.save(order)
@@ -182,25 +188,28 @@ class OrderController:
         # TODO: change status only for owning business items
         user: BusinessUser = user_raw
         order_id = body.get('order_id', None)
-        item_index = body.get('item_index', None)
+        item = body.get('item', None)
         status = body.get('status', None)
-        if status is None or order_id is None or item_index is None:
+        if status is None or order_id is None or item is None:
             res.status = HttpStatus.BAD_REQUEST
             return {
-                'error': 'Must pass body fields "order_id", "status" and "item_index"'
+                'error': 'Must pass body fields "order_id", "status" and "item"'
             }
+
+        item = OrderController.build_order_items_from_unparsed_list([item])
+        if len(item) == 0:
+            res.status = HttpStatus.BAD_REQUEST
+            return {
+                'error': 'Field "item" must be of type OrderItem'
+            }
+
+        item = item[0]
 
         status_max = len(OrderStatus._member_map_.values())
         if not isinstance(status, int) or status >= status_max:
             res.status = HttpStatus.BAD_REQUEST
             return {
                 "error": f"'status' body field must be an integer between 0 and {status_max}"
-            }
-
-        if not isinstance(item_index, int) or item_index < 0:
-            res.status = HttpStatus.BAD_REQUEST
-            return {
-                "error": f"'item_index' body field must be an integer"
             }
 
         order_id = ObjectId(order_id)
@@ -219,19 +228,27 @@ class OrderController:
             }
 
         order = Order.get_order(order_id)
-        if item_index >= len(order.items):
+        index = -1
+        for i in range(len(order.items)):
+            item_order = order.items[i]
+            if item_order.item_id == item.item_id and item_order.business_id == item.business_id \
+                    and item_order.selected_modifiers == item.selected_modifiers:
+                index = i
+                break
+
+        if index < 0:
             res.status = HttpStatus.BAD_REQUEST
             return {
-                "error": "There is no item with such an index."
+                "error": "The item passed does not exist in the order"
             }
 
-        if order.items[item_index].business_id != business.id:
+        if ObjectId(order.items[index].business_id) != business.id:
             res.status = HttpStatus.UNAUTHORIZED
             return {
                 "error": "You cannot modify the status of this item."
             }
 
-        order_doc = orders_collection.find_one_and_update({"_id": order_id}, {"$set": {f"it.{item_index}.sta": status}},
+        order_doc = orders_collection.find_one_and_update({"_id": order_id}, {"$set": {f"it.{index}.sta": status}},
                                                           return_document=ReturnDocument.AFTER)
         return Order.document_repr_to_object(order_doc)
 

@@ -46,6 +46,12 @@ class SelectedModificationButton(DocumentObject):
 
         return SelectedModificationButton(**args)
 
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+
+        return self.name == other.name and self.selected_data == other.selected_data and self.data_type == other.data_type
+
     def shorten_field_name(self, field_name):
         return self.LONG_TO_SHORT.get(field_name, None)
 

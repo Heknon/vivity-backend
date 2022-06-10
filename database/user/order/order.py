@@ -8,6 +8,7 @@ from bson import ObjectId
 from pymongo import ReturnDocument
 
 import database.user.shipping_address as sa_module
+import database.user.shipping_method as sm_module
 from database import DocumentObject, orders_collection
 from .order_item import OrderItem
 
@@ -22,6 +23,7 @@ class Order(DocumentObject):
         "cupon_discount": "cd",
         "total": "t",
         "items": "it",
+        'shipping_method': 'sm'
     }
 
     SHORT_TO_LONG = {value: key for key, value in LONG_TO_SHORT.items()}
@@ -36,6 +38,7 @@ class Order(DocumentObject):
             total: float,
             shipping_address: sa_module.ShippingAddress,
             items: List[OrderItem],
+            shipping_method: ShippingMethod,
     ):
         self._id = _id
         self.order_date = order_date
@@ -45,6 +48,7 @@ class Order(DocumentObject):
         self.cupon_discount = cupon_discount
         self.total = total
         self.items = items
+        self.shipping_method = shipping_method
 
     @staticmethod
     def get_orders(order_ids: List[ObjectId], business_id: ObjectId):
@@ -53,7 +57,7 @@ class Order(DocumentObject):
         for order in orders:
             items = []
             for item in order.items:
-                if item.business_id == business_id:
+                if ObjectId(item.business_id) == business_id:
                     items.append(item)
 
             order.items = items
@@ -75,6 +79,7 @@ class Order(DocumentObject):
             cupon_discount=order.cupon_discount,
             total=order.total,
             items=order.items,
+            shipping_method=order.shipping_method
         )
         saved = Order.get_db_repr(order_save)
         return Order.document_repr_to_object(orders_collection.find_one_and_update(
@@ -91,6 +96,7 @@ class Order(DocumentObject):
         res.setdefault("it", [])
         res["it"] = list(map(lambda order_item: OrderItem.get_db_repr(order_item, get_long_names), res["it"]))
         res["sa"] = sa_module.ShippingAddress.get_db_repr(order.shipping_address, get_long_names) if order.shipping_address is not None else None
+        res['sm'] = order.shipping_method.value
 
         if get_long_names:
             res["_id"] = str(res["_id"])
@@ -103,7 +109,8 @@ class Order(DocumentObject):
         args = {key: doc[value] if value in doc else None for key, value in Order.LONG_TO_SHORT.items()}
         args["order_date"] = datetime.datetime.fromtimestamp(int(doc["ots"]))
         args["items"] = list(map(lambda order_item: OrderItem.document_repr_to_object(order_item), doc.get("it", [])))
-        args["shipping_address"] = sa_module.ShippingAddress.document_repr_to_object(doc["sa"], address_index=0) if 'sa' in doc else None
+        args["shipping_address"] = sa_module.ShippingAddress.document_repr_to_object(doc["sa"], address_index=0) if doc.get('sa', None) is not None else None
+        args['shipping_method'] = sm_module.ShippingMethod._value2member_map_[doc['sm']]
 
         return Order(**args)
 

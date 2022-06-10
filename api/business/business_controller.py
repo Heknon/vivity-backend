@@ -59,7 +59,7 @@ class BusinessData:
                 "error": "Whoops looks like your business no longer exists"
             }
 
-        return Order.get_orders(business.orders)
+        return Order.get_orders(business.orders, business_id=user.business_id)
 
     @staticmethod
     @BlacklistJwtTokenAuth(on_fail=auth_fail)

@@ -2,7 +2,7 @@ __all__ = ["DocumentObject", "users_collection", "businesses_collection", "order
            "ShippingAddress", "Order", "OrderItem", "OrderHistory", "ModificationButtonDataType", "SelectedModificationButton", "Image",
            "Color", "ModificationButton", "ModificationButtonSide", "Review", "Item", "ItemStoreFormat", "Location", "Category", "Contact",
            "BusinessUser", "access_token_blacklist_collection", "access_token_blacklist", "Business", "s3Bucket", "Cart", "CartItem",
-           "refresh_token_blacklist", "refresh_token_blacklist_collection", "TokenBlacklist", "items_collection", "unapproved_businesses_collection"]
+           "refresh_token_blacklist", "refresh_token_blacklist_collection", "TokenBlacklist", "items_collection", "unapproved_businesses_collection", "ShippingMethod"]
 
 from pymongo import MongoClient, collection, database, TEXT, GEOSPHERE
 
