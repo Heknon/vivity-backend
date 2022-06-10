@@ -52,6 +52,6 @@ class CartController:
             ),
         ), body))
 
-        result = user.cart.replace_items(cart_items).order
+        result = user.cart.replace_items(cart_items).cart
         res.status = HttpStatus.CREATED
         return result

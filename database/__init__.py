@@ -22,6 +22,7 @@ items_collection: collection.Collection = client.items
 access_token_blacklist_collection: collection.Collection = client.access_blacklist
 refresh_token_blacklist_collection: collection.Collection = client.refresh_blacklist
 user_auth_collection: collection.Collection = client.user_auth
+cupon_collection: collection.Collection = client.cupon
 
 users_collection.create_index([("ml", 1)], name="email", unique=True)
 items_collection.create_index([("loc", GEOSPHERE)], name="item_location_index", unique=False)

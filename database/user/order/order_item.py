@@ -60,7 +60,6 @@ class OrderItem(DocumentObject):
 
     @staticmethod
     def document_repr_to_object(doc, **kwargs):
-        print(doc)
         args = {key: doc[value] for key, value in OrderItem.LONG_TO_SHORT.items()}
         args.setdefault("selected_modifiers", [])
         args["selected_modifiers"] = \

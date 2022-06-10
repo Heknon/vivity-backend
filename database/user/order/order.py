@@ -67,7 +67,7 @@ class Order(DocumentObject):
     @staticmethod
     def save(order: Order):
         order_save = Order(
-            _id=ObjectId(),
+            _id=order.id if order.id is not None else ObjectId(),
             order_date=order.order_date,
             subtotal=order.subtotal,
             shipping_cost=order.shipping_cost,
@@ -77,7 +77,7 @@ class Order(DocumentObject):
             items=order.items,
         )
         saved = Order.get_db_repr(order_save)
-        Order.document_repr_to_object(orders_collection.find_one_and_update(
+        return Order.document_repr_to_object(orders_collection.find_one_and_update(
             {"_id": order_save._id},
             {"$set": saved},
             upsert=True,

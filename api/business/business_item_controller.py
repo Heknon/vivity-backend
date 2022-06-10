@@ -14,9 +14,9 @@ from .. import app, auth_fail, REVIEW_IMAGE_AWS_FOLDER, ITEM_IMAGE_AWS_FOLDER
 from ..utils import applyImagesToItems
 
 
-@app.get("/business/item")
+@app.post("/business/items")
 def get_items(
-        item_ids: QueryParameter("item_ids", list),
+        item_ids: RequestBody(),
         include_images: QueryParameter('include_images', bool)
 ):
     if not isinstance(item_ids, list):
