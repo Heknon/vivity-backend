@@ -348,6 +348,7 @@ class Business(DocumentObject):
         res["cat"] = list(map(lambda category: category_module.Category.get_db_repr(category, get_long_names), res.get("cat", [])))
         res["cntc"] = contact_module.Contact.get_db_repr(res["cntc"], get_long_names)
         res["mtc"] = metrics_mod.BusinessMetrics.get_db_repr(res['mtc'], get_long_names)
+        res['oic'] = res['oic'].image_id if type(res['oic']) == Image else res['oic']
 
         if get_long_names:
             res["_id"] = str(business._id)

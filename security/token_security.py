@@ -72,6 +72,9 @@ class LoginTokenFactory(JwtTokenFactory):
 
         _id = user_doc["_id"]
         user_auth = UserAuth.get_by_id(_id)
+        if user_auth is None:
+            user_auth = UserAuth.create_from_id(_id)
+
         otp = request_body.get("otp", None)
         if user_auth.should_reset_attempts():
             user_auth = user_auth.reset_attempts(_id)

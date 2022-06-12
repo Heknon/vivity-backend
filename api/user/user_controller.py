@@ -56,11 +56,19 @@ class UserData:
             }
 
         unit = Unit._value2member_map_[user_settings.unit] if user_settings.unit is not None else None
+        if user.email != user_settings.email and User.exists_by_email(user_settings.email):
+            response.status = HttpStatus.BAD_REQUEST
+            return {
+                "error": "A user with that email already exists"
+            }
+
         user_res = user.update_fields(user_settings.email, user_settings.phone, unit, user_settings.currency_type)
         result = user_res.__getstate__()
 
         result["liked_items"] = applyImagesToItems(*Item.get_items(*user.liked_items._liked_items))
-        result['profile_picture'] = base64.b64encode(user.profile_picture.get_image()).decode('utf-8')
+        pfp = user.profile_picture.get_image()
+        result['profile_picture'] = base64.b64encode(pfp).decode('utf-8') if pfp is not None else None
+        result['order_history'] = list(map(lambda order: order.__getstate__(), user.order_history.get_orders()))
 
         return result
 

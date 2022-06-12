@@ -41,6 +41,9 @@ class S3Bucket(metaclass=Singleton):
             raise e
 
     def fetch(self, key):
+        if key is None:
+            return
+
         try:
             res: StreamingBody = self.client.get_object(Bucket=self.bucket_name, Key=key)["Body"]
             return res.read()
