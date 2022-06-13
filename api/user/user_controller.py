@@ -84,9 +84,10 @@ class UserData:
         if user.profile_picture is not None and user.profile_picture.image_id is not None:
             user.profile_picture.delete_image()
             user.update_profile_picture(None)
-            return {
-                "image": None
-            }
+            if pfp is None:
+                return {
+                    "image": None
+                }
 
         image = Image.upload(pfp, folder_name="profiles/") if pfp is not None else None
         user.update_profile_picture(image)
@@ -129,7 +130,8 @@ class UserData:
 
         user.liked_items.add_liked_items(item_id)
         items_collection.update_one({"_id": item_id}, {"$inc": {"mtc.lks": 1}})
-        get_item_models = get_item_models if get_item_models is not None and isinstance(get_item_models, bool) else False
+        get_item_models = get_item_models if get_item_models is not None and isinstance(get_item_models,
+                                                                                        bool) else False
 
         items = Item.get_items(*user.liked_items._liked_items) if get_item_models else user.liked_items
         for item in items:
@@ -161,7 +163,8 @@ class UserData:
 
         user = user.liked_items.remove_liked_item(item_id)
         items_collection.update_one({"_id": item_id}, {"$inc": {"mtc.lks": -1}})
-        get_item_models = get_item_models if get_item_models is not None and isinstance(get_item_models, bool) else False
+        get_item_models = get_item_models if get_item_models is not None and isinstance(get_item_models,
+                                                                                        bool) else False
 
         items = Item.get_items(*user.liked_items._liked_items) if get_item_models else user.liked_items
         for item in items:

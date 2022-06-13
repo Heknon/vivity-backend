@@ -19,7 +19,7 @@ def user_explore(
         response: HttpResponse
 ):
     user: User = token_data
-    loc = parse_and_validate_query_location([lng, lat])
+    loc = parse_and_validate_query_location([lat, lng])
     if loc is None:
         response.status = HttpStatus.BAD_REQUEST
         return {
@@ -42,7 +42,7 @@ def user_explore(
         response: HttpResponse
 ):
     user: User = token_data
-    loc = parse_and_validate_query_location([lng, lat])
+    loc = parse_and_validate_query_location([lat, lng])
     if loc is None:
         response.status = HttpStatus.BAD_REQUEST
         return {

@@ -73,10 +73,15 @@ class AdminController:
 
         business_id = ObjectId(business_id)
 
+        business = None
         if approved:
-            return Business.approve_business(business_id, note)
+            business = Business.approve_business(business_id, note)
         else:
-            return Business.move_business_to_unapproved(business_id, note)
+            business = Business.move_business_to_unapproved(business_id, note)
+
+        img_bytes = business.owner_id_card.get_image()
+        business.owner_id_card = base64.b64encode(img_bytes).decode('utf-8')
+        return business
 
     @staticmethod
     def get_businesses_from_collection(user: User, response: HttpResponse, collection, get_images: bool):
