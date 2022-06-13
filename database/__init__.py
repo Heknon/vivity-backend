@@ -44,7 +44,7 @@ from .blacklist import TokenBlacklist
 
 access_token_blacklist = TokenBlacklist(
     access_token_blacklist_collection,
-    60 * 30,
+    60 * 60 * 5,
     "Access token blacklist"
 )
 

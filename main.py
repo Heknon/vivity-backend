@@ -3,6 +3,8 @@ import logging
 import signal
 import sys
 
+from web_framework_v2 import JwtSecurity
+
 import api  # must import to register package and execute its code.
 from database import s3Bucket
 
@@ -10,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    print(JwtSecurity.decode_access_token('eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpZCI6IjYyYTcxMTdlMGI3OTg2ZmZkY2ZmMGU3NCIsIm5hbWUiOiJPcmkgSGFyZWwiLCJlbWFpbCI6InVzZXIyQGdtYWlsLmNvbSIsInBob25lIjoiMDU4NTU1MTc4NCIsImV4cCI6MTY1NTEzODE0MH0.iOuXsE-FKn2tOB_fiuK6tqMnY10t3qRSRHlWP7_Yu6Um9nk2gVV8p7Mn0_lvsDeztJrOjpzWKLK76mnp0g4JhadHNcMBeO21duSw3tBcCvSpUU-CRv9En9xEnJbCAN3rLw8FPmVDAu0x_MnAiY47CurViFa06WU--a4xQFQxYSHHHS7aCNHk07Z1Q4bqNTfEm27peyCtJnVQago4QVdIleEmAKxALjOXJqEuaueuR1Re29xIsagBnvo5HlZySBoUsLfN5PR6Tda3XKih-LlSINhfAjRQcob1IkpsOMTUpK_zcDmf0NwUiVJWL0-X1td_rOdZ0Y-2w_tFjFUWTF1MUk5iyuUzR0QypOzRRMTBlLnbYWe8l3qL-_IWJaFPetf1VgeFJlRy0muj8m2QiKiD5FeC9mAdL0iWTLStCatnFk0Z3myI34HTEx0lapG0frWHEN9nQY-HVrDGlh_LcVEQ1q-ErcCsuUeTjU71rRif77Ct-CiSmRBp7ThWP2GfOXKg3nDCgsuE_Qn3P265d_ESswC88uI3HdVvfBJlAKhr_NihGK8ill8DdyEHDmOcyPoXwzptDDMaNqW_YoWATpNtuUxdiRK08ZhToA5Nh841oooGFK1rLcWVNIOJQ85tLfC1RZwwwTStmF3uH3o4Hji5lAtyVfPUZGnoACNFfPd-hW8'))
     api.app.start()
     # cmd = input("Enter a command: ")
     # time.sleep(1)
