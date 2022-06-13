@@ -14,11 +14,12 @@ from .utils import applyImagesToItems
 def user_explore(
         token_data: BlacklistJwtTokenAuth,
         radius: QueryParameter("radius", int),
-        radius_center: QueryParameter("radius_center", list),
+        lat: QueryParameter("lat", float),
+        lng: QueryParameter("lng", float),
         response: HttpResponse
 ):
     user: User = token_data
-    loc = parse_and_validate_query_location(radius_center)
+    loc = parse_and_validate_query_location([lng, lat])
     if loc is None:
         response.status = HttpStatus.BAD_REQUEST
         return {
@@ -36,11 +37,12 @@ def user_explore(
 def user_explore(
         token_data: BlacklistJwtTokenAuth,
         radius: QueryParameter("radius", int),
-        radius_center: QueryParameter("radius_center", list),
+        lat: QueryParameter("lat", float),
+        lng: QueryParameter("lng", float),
         response: HttpResponse
 ):
     user: User = token_data
-    loc = parse_and_validate_query_location(radius_center)
+    loc = parse_and_validate_query_location([lng, lat])
     if loc is None:
         response.status = HttpStatus.BAD_REQUEST
         return {
