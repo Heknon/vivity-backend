@@ -39,7 +39,7 @@ def error_handler(error: Exception, traceback: str, req: HttpRequest, res: HttpR
     })
 
 
-HOST = "0.0.0.0"
+HOST = "127.0.0.1"
 app = Framework(
     static_folder="",
     static_url_path="",
